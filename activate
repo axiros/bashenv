@@ -2,4 +2,4 @@
 
 
 
-echo "activating"
+echo "activating $*"
