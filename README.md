@@ -32,6 +32,10 @@ but that list can be extended.
 
 tbd - see [tests](tests/controller.sh) for the moment.
 
+## OSX / Other Platforms
+
+Download the Anaconda installer for those manually and provide their location via `-C` when running the `create` tool.
+The rest is identical. Should be clear that you cannot change the architecture of an already created bashenv on the fly, you have to start from scratch or an existing bashenv in your architecture.
 
 
 
