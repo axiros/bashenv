@@ -10,7 +10,7 @@ here="`pwd`"
 P1="/tmp/xc"
 P2="/tmp/xc2"
 P3="/tmp/xc3"
-create="misc/create_bashenv_kickstart/create"
+create="$here/misc/create_bashenv_kickstart/create"
 d_inst="/tmp/installers"
 # created at second test:
 base_installer=
@@ -55,12 +55,12 @@ test_construct_base_conda_installer () {
     constructor --output-dir="$d_inst" "$here/misc/constructions/base"
     echo "constructed: `ls -lta $d_inst`"
     base_installer="`/bin/ls /tmp/installers | grep base_`"
-    del "$P1"
+    #del "$P1"
 }
 
 test_bootstrap_from_constructed () {
     remove_existing "$P3"
-    $create -b -C "$base_installer" -p "$P3" go
+    "$create" -b -C "$base_installer" -p "$P3" go
     act_verify "$P3"
     del "$P3"
 }
