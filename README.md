@@ -6,7 +6,7 @@ This sets up enviroments with some bash helper features plus [conda](https://ana
 based package management.
 
 From any Unix environment with only wget or curl you can define the tools you
-need in a config file, then start an installer producing the intended environment
+need in a config file, then start an installer producing the intended environment...
 
 - in a shell sourceable way, w/o even leaving your current process.
 
@@ -14,6 +14,13 @@ need in a config file, then start an installer producing the intended environmen
 
 - with a [command][constructor] at hand to create one installer file,
   for (again relocatable) installs in airtight production environments.
+
+
+The tool is designed to work well with static package download facilities, like pip servers and conda channels but also with DVCS servers.
+
+Note: When you do not have a DVCS tool like git or hg on your target (but Internet or a static server with a base environment), then just download a snapshot of this repo to anywhere in your filesystem and run the [installer](misc/create_bashenv/create).
+
+
 
 
 ## Included Tools
@@ -25,7 +32,27 @@ In the base package the minimum conda tools are
 - [constructor][constructor]
 - pip
 
-but that list can be extended.
+but that list can be extended via the config.
+
+## Example Config
+
+```bash
+development_chroot root@ip-10-34-2-19:/# cat /root/gk/bashenv/misc/be_configs/reactive_python2.7
+#!/usr/bin/env bash
+
+conda_prefix="/xc.$(basename $be_config_file)"
+
+packages="-c conda-forge jq httpie
+"
+
+pips="structlog rx"
+
+tests='
+http --version
+jq --version
+'
+tests_python='import rx, structlog; print(structlog, rx)'
+```
 
 
 # Usage
