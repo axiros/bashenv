@@ -253,7 +253,9 @@ add_base_env () {
     $bootstrap_mode && src="$here/../../" || \
         src="$_take_bashenv_from_conda_prefix$_bashenv_within_conda_path"
     local dest="$conda_prefix$_bashenv_within_conda_path"
-    tar_pipe "$src" "$dest"
+    local t="`mktemp -d`"
+    tar_pipe "$src" "$t"
+    tar_pipe "$t" "$dest"
     del "$dest/.git"
     del "$dest/.hg"
 }
