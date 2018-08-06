@@ -20,8 +20,8 @@ Options:
 -b: Bootstrap. We create a bashenv from scratch, i.e. not a new one from within
     an existing install with same prefix.
 -c: Create new repo - removing exiting $conda_prefix.$dvcs, if present
--P: Push updates back to master
 -d: DVCS [$dvcs]
+-P: Push updates back to master
 -p: Set conda prefix [default: $conda_prefix]. If we are within another prefix this
     sets -b
 -A: Add activate statement to $home/.bashrc
@@ -47,7 +47,6 @@ conda_pkg="/tmp/miniconda2.sh"
 # you could point this to a conda built by constructor, already containing
 # more stuff:
 conda_url="https://repo.continuum.io/miniconda/Miniconda2-latest-Linux-x86_64.sh"
-conda_prefix="/xc"
 
 bootstrap_mode=false
 create_new_repo=false
@@ -73,14 +72,15 @@ source_functions () {
 
 parse_cli () {
     OPTIND=
-    while getopts "Aad:bpg:x" opt; do
+    while getopts "Aad:bp:g:x" opt; do
         case "$opt" in
             d) dvcs="$OPTARG";;
             A) add_activate_to_bashrc=true;;
             a) activate_when_done=true;;
             b) bootstrap_mode=true;;
             c) create_new_repo=true;;
-            p) push_back=true;;
+            p) conda_prefix="$OPTARG";;
+            P) push_back=true;;
             g) repo_to_update_dir_or_url="$OPTARG";;
             x) set -x;;
             *) exit_sh_help
