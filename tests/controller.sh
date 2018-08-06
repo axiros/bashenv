@@ -44,6 +44,7 @@ del () {
 act_verify () {
     export PATH="$syspath"
     source "$1/bin/activate"
+    conda info -a
     which python | grep "$1" || exit 1
     which hg          | grep "$1" || exit 1
     which git         | grep "$1" || exit 1
@@ -99,7 +100,7 @@ main () {
     ( run test_create_scratch                                      )
     ( run test_construct_relocatable_conda_installer_with_packages )
     ( run test_bootstrap_from_constructed                          )
-    ( run test_create_from_existing                                )
+    ( run test_create_from_existing_with_packages                  )
 }
 
 main $*
