@@ -8,6 +8,9 @@ conda_prefix="/xc"
 base_packages="git mercurial constructor"
 dvcs=git
 
+# defaults, changeable on CLI switch basis:
+conda_pkg="/tmp/miniconda2.sh"
+
 usage="Creates a Bashenv Repo's 'init' branch from scratch
 
 Usage: $me [OPTIONS] go
@@ -16,9 +19,11 @@ The init branch is to allow to later create bashenvs from a config file but w/o
 the need for git or hg, i.e. it is intended to be downloaded as snapshot, with
 on installer.
 
+
 Options:
 -b: Bootstrap. We create a bashenv from scratch, i.e. not a new one from within
     an existing install with same prefix.
+-C: Use this conda installer file [$conda_pkg]
 -c: Create new repo - removing exiting $conda_prefix.$dvcs, if present
 -d: DVCS [$dvcs]
 -P: Push updates back to master
@@ -41,8 +46,6 @@ $me -rpg https://github.com/axiros/bashenv_kickstart go
 set -eu
 
 
-# defaults, changeable on CLI switch basis:
-conda_pkg="/tmp/miniconda2.sh"
 # you could point this to a conda built by constructor, already containing
 # more stuff:
 conda_url="https://repo.continuum.io/miniconda/Miniconda2-latest-Linux-x86_64.sh"
@@ -70,13 +73,14 @@ source_functions () {
 
 parse_cli () {
     OPTIND=
-    while getopts "Ad:bp:g:x" opt; do
+    while getopts "C:Ad:bp:g:x" opt; do
         case "$opt" in
             d) dvcs="$OPTARG";;
             A) add_activate_to_bashrc=true;;
             b) bootstrap_mode=true;;
             c) create_new_repo=true;;
             p) conda_prefix="$OPTARG";;
+            C) conda_pkg="$OPTARG";;
             P) push_back=true;;
             g) repo_to_update_dir_or_url="$OPTARG";;
             x) set -x;;
@@ -155,7 +159,7 @@ is_hg () { test "$dvcs" == "hg"; }
 
 cd_conda () { cd "$conda_prefix"; }
 
-create_dvcs_if_not_exists () {
+create_dvcs_repo_if_missing () {
     test "${create_new_repo:-}x" == "xtrue" && del "$conda_prefix/.$dvcs"
     test -e "$conda_prefix/.$dvcs" || {
         $dvcs init
@@ -168,11 +172,9 @@ create_dvcs_if_not_exists () {
         $dvcs add "$fni" || true
     }
     test -e "README.md" || cat "$_fn_default_readme" > "README.md"
-    nfo "Adding..."
-    is_hg && hg addrem
-    is_hg || git add -vA
-    
-    echo "`$dvcs status | wc -l ` files"
+    echo "Adding `$dvcs status | wc -l ` files"
+    is_hg && hg -q addrem
+    is_hg || git add -A
     $dvcs commit -qam 'by create' || true
     return 0
 }
@@ -305,7 +307,7 @@ main () {
     sh copy_base_env_over
     sh clean_conda
     sh cd_conda
-    sh create_dvcs_if_not_exists
+    sh create_dvcs_repo_if_missing
     sh do_add_activate_to_bashrc
     sh do_push_up_to_master
     sh test_success
