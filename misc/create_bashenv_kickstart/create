@@ -25,7 +25,6 @@ Options:
 -p: Set conda prefix [default: $conda_prefix]. If we are within another prefix this
     sets -b
 -A: Add activate statement to $home/.bashrc
--a: Activate when done (calling a subshell)
 
 If you point -g to a remote repo, you need git/hg already when running this - we do not
 download this as zip, just in order to create this ;-)
@@ -56,13 +55,12 @@ remove_packages=false
 push_back=false
 
 add_activate_to_bashrc=false
-activate_when_done=false
 
 
 # -------------------------------------------------------------------- internal
 _take_bashenv_from_conda_prefix=
 # fix. always:
-_bashenv_within_conda_path="/bin/app/environ/bash"
+_bin_app_env_bash="/bin/app/environ/bash"
 _fn_default_readme="$here/README_default.md"
 # -----------------------------------------------------------------------------
 
@@ -72,11 +70,10 @@ source_functions () {
 
 parse_cli () {
     OPTIND=
-    while getopts "Aad:bp:g:x" opt; do
+    while getopts "Ad:bp:g:x" opt; do
         case "$opt" in
             d) dvcs="$OPTARG";;
             A) add_activate_to_bashrc=true;;
-            a) activate_when_done=true;;
             b) bootstrap_mode=true;;
             c) create_new_repo=true;;
             p) conda_prefix="$OPTARG";;
@@ -173,8 +170,9 @@ create_dvcs_if_not_exists () {
     test -e "README.md" || cat "$_fn_default_readme" > "README.md"
     nfo "Adding..."
     is_hg && hg addrem
-    is_hg || git add -Av | wc -l
-    echo "...files"
+    is_hg || git add -A
+    
+    echo "`$dvcs status | wc -l ` files"
     $dvcs commit -qam 'by create' || true
     return 0
 }
@@ -218,7 +216,7 @@ do_check_if_conda_is_activated () {
     local d="`python -c 'import sys; print(sys.executable)'`"
     d="`dirname "$d"`"
     d="`dirname "$d"`"
-    local b="$d$_bashenv_within_conda_path"
+    local b="$d$_bin_app_env_bash"
     test -e "$b" || return 1
     echo "activated conda found at "$d". Will take bashenv from $b."
     local h="$_take_bashenv_from_conda_prefix"
@@ -251,8 +249,8 @@ do_fail_on_no_git_hg () {
 add_base_env () {
     local src
     $bootstrap_mode && src="$here/../../" || \
-        src="$_take_bashenv_from_conda_prefix$_bashenv_within_conda_path"
-    local dest="$conda_prefix$_bashenv_within_conda_path"
+        src="$_take_bashenv_from_conda_prefix$_bin_app_env_bash"
+    local dest="$conda_prefix$_bin_app_env_bash"
     local t="`mktemp -d`"
     tar_pipe "$src" "$t"
     tar_pipe "$t" "$dest"
@@ -263,20 +261,15 @@ add_base_env () {
 do_add_activate_to_bashrc () {
     $add_activate_to_bashrc || { echo "Not adding to bashrc"; return 0; }
     local fn="$HOME/.bashrc"
-    local msg='source "'$conda_prefix''$_bashenv_within_conda_path'/be_active"'
+    local msg='source "'$conda_prefix''$_bin_app_env_bash'/be_active"'
     nfo "Adding to $fn: $msg"
     local i="`mktemp`" # sed !
-    cat "$fn" | grep -v "$_bashenv_within_conda_path" | grep -v "Added by bashenv" > "$i"
+    cat "$fn" | grep -v "$_bin_app_env_bash" | grep -v "Added by bashenv" > "$i"
     cat "$i" > "$fn"
-    msg="# Added by bashenv installer [`date`]:\n$msg"
-    echo -e "\n$msg" >> "$fn"
+    echo "# Added by bashenv installer [`date`]" >> "$fn"
+    echo -e "$msg" >> "$fn"
 }
 
-do_activate_subshell () {
-    $activate_when_done || return 0
-    nfo "Activating $conda_prefix"
-    /bin/bash --rcfile "$conda_prefix$_bashenv_within_conda_path/be_active"
-}
 
 main () {
     source_functions
@@ -304,7 +297,6 @@ main () {
     sh do_push_up_to_master
     sh test_success
     show_info
-    sh do_activate_subshell
 }
 
 main $*
