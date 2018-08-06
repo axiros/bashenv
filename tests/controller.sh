@@ -2,14 +2,11 @@
 
 set -eu
 
-here="$(unset CDPATH && cd "$(dirname "$BASH_SOURCE")" && echo $PWD)"
-cd "$here"
-cd ..
-here="`pwd`"
+here="$(unset CDPATH && cd "$(dirname "$BASH_SOURCE")/.." && echo $PWD)"
 
 P1="/tmp/xc"
-P3="/tmp/xc2"
-P2="/tmp/xc3"
+P2="/tmp/xc2"
+P3="/tmp/xc3"
 create_rel="misc/create_bashenv/create"
 create="$here/$create_rel"
 d_inst="/tmp/installers"
@@ -19,7 +16,7 @@ export be_force_colors=true
 syspath="$PATH"
 
 # should contain tests:
-test_config1="misc/be_configs/reactive_python2.7"
+test_config1="$here/misc/be_configs/reactive_python2.7"
 
 run () {
     echo
@@ -30,31 +27,32 @@ run () {
     $1
 }
 
+act_verify () {
+    export PATH="$syspath"
+    local prefix="${1:-xx}"
+    source "$prefix/bin/activate"
+    conda info -a
+    which python      | grep "$prefix" || exit 1
+    which hg          | grep "$prefix" || exit 1
+    which git         | grep "$prefix" || exit 1
+    which constructor | grep "$prefix" || exit 1
+    test -e "$prefix/.git" || exit 1
+    # only this allows to remove directly after git -A:
+    # otherwise the gc process conflicts with rm:
+    # can't do, tests are also on non travis:
+    # looping in del instead... :-/
+    #git config --global gc.auto 0
+}
+
 del () {
-    for i in 1 2 3 4 5 6 7 8 9; do
+    for i in 1 2 3 4 5; do
         echo "trying delete $1..."
         /bin/rm -rf "$1" && return 0
         # because of git's stupid gc which I can't turn off w/o git...
         echo "could not delete... trying again in 2"
         sleep 2
     done
-    return 0
-}
-
-act_verify () {
-    export PATH="$syspath"
-    source "$1/bin/activate"
-    conda info -a
-    which python | grep "$1" || exit 1
-    which hg          | grep "$1" || exit 1
-    which git         | grep "$1" || exit 1
-    which constructor | grep "$1" || exit 1
-    test -e "$1/.git" || exit 1
-    # only this allows to remove directly after git -A:
-    # otherwise the gc process conflicts with rm:
-    # can't do, tests are also on non travis:
-    # looping in del instead... :-/
-    #git config --global gc.auto 0
+    exit 1
 }
 
 test_create_scratch () {
@@ -97,9 +95,9 @@ test_create_from_existing_with_packages () {
 
 
 main () {
-    ( run test_create_scratch                                      )
-    ( run test_construct_relocatable_conda_installer_with_packages )
-    ( run test_bootstrap_from_constructed                          )
+    #( run test_create_scratch                                      )
+    #( run test_construct_relocatable_conda_installer_with_packages )
+    #( run test_bootstrap_from_constructed                          )
     ( run test_create_from_existing_with_packages                  )
 }
 

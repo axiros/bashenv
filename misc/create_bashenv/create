@@ -64,6 +64,7 @@ add_activate_to_bashrc=false
 
 
 # -------------------------------------------------------------------- internal
+_opts="c:C:Ad:bp:g:xh"
 _take_bashenv_from_conda_prefix=
 # fix. always:
 _bin_app_env_bash="/bin/app/environ/bash"
@@ -79,7 +80,7 @@ parse_cli () {
     echo "$me $*"
     echo "----"
     OPTIND=
-    while getopts "c:C:Ad:bp:g:xh" opt; do
+    while getopts "$_opts" opt; do
         case "$opt" in
             d) dvcs="$OPTARG";;
             c) be_config_file="$OPTARG";;
@@ -315,10 +316,14 @@ do_add_activate_to_bashrc () {
     echo -e "$msg" >> "$fn"
 }
 
-have_be_config_file () { test "${be_config_file}x" != "x"; }
+have_be_config_file () {
+    test "${be_config_file:-}x" == "x" && return 1
+    return 0
+}
 
 source_configfile () {
-    while getopts "c:" opt 2>/dev/null; do
+    #while getopts "c:" opt 2>/dev/null; do
+    while getopts "$_opts" opt; do
         case "$opt" in
             c) be_config_file="`readlink -f "$OPTARG"`";; # abspath, we will cd
             *) true;;
