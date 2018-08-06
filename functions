@@ -87,7 +87,8 @@ tar_pipe () {
     dbg "copying from \n$1\nto\n$2"
     test "x$1" == "x$2" && { echo "dir is ident, no op."; return 0; }
     test -e "$2" || /bin/mkdir -p "$2"
-    ( cd "$1" && /usr/bin/env tar -cf - . ) | ( cd "$2" && /usr/bin/env tar -xpf - )
+    ( cd "$1" && /usr/bin/env tar --exclude="$2" -cf - . ) | \
+    ( cd "$2" && /usr/bin/env tar -xpf - )
 }
 
 die () {
