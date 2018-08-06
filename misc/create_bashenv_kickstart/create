@@ -51,7 +51,7 @@ bootstrap_mode=false
 create_new_repo=false
 
 # remove all $conda_prefix/pkgs after install:
-remove_packages=false
+remove_packages=true
 push_back=false
 
 add_activate_to_bashrc=false
@@ -170,7 +170,7 @@ create_dvcs_if_not_exists () {
     test -e "README.md" || cat "$_fn_default_readme" > "README.md"
     nfo "Adding..."
     is_hg && hg addrem
-    is_hg || git add -A
+    is_hg || git add -vA
     
     echo "`$dvcs status | wc -l ` files"
     $dvcs commit -qam 'by create' || true
@@ -238,6 +238,20 @@ do_check_set_bootstrap_mode () {
     echo "bootstrap mode: $bootstrap_mode"
 }
 
+take_bash_env_dir () {
+    $bootstrap_mode && { echo "`( cd $here/../../ && pwd )`"; return 0; }
+    local s="$_take_bashenv_from_conda_prefix$_bin_app_env_bash"
+    test -e "$s" || die "Error, $s not found"
+    echo "$s"
+}
+
+prevent_copy_into_same_dir () {
+    local src="`take_bash_env_dir`"
+    case "$conda_prefix" in "$src"*)
+        die "Refusing - $conda_prefix within $src"
+    esac
+}
+
 do_fail_on_no_git_hg () {
     echo -e "$L\nchecking hg"
     hg version | head -n 1 || die "hg not found"
@@ -246,16 +260,13 @@ do_fail_on_no_git_hg () {
     good "both present"
 }
 
-add_base_env () {
-    local src
-    $bootstrap_mode && src="$here/../../" || \
-        src="$_take_bashenv_from_conda_prefix$_bin_app_env_bash"
+copy_base_env_over () {
+    local src="`take_bash_env_dir`"
     local dest="$conda_prefix$_bin_app_env_bash"
-    local t="`mktemp -d`"
-    tar_pipe "$src" "$t"
-    tar_pipe "$t" "$dest"
-    del "$dest/.git"
-    del "$dest/.hg"
+    tar_pipe "$src" "$dest"
+    # could not commit otherwise:
+    nfo "removing any $dvcs dirs at $dest"
+    ( cd "$dest" && find . | grep '.'$dvcs'$' | xargs rm -rf )
 }
 
 do_add_activate_to_bashrc () {
@@ -271,6 +282,7 @@ do_add_activate_to_bashrc () {
 }
 
 
+
 main () {
     source_functions
     parse_cli $* || exit_sh_help
@@ -278,6 +290,7 @@ main () {
     sh do_check_if_conda_is_activated || true
     sh do_activate_existing_for_git_hg || true
     sh do_check_set_bootstrap_mode
+    sh prevent_copy_into_same_dir
     #sh do_bootstrap_remove_existing
     # sh fetch_repo_to_update_url || die "Error fetching repo"
     $bootstrap_mode && {
@@ -289,7 +302,7 @@ main () {
         sh add_base_packages
     }
     sh do_fail_on_no_git_hg
-    sh add_base_env
+    sh copy_base_env_over
     sh clean_conda
     sh cd_conda
     sh create_dvcs_if_not_exists
