@@ -2,7 +2,7 @@
 
 set -xeu
 
-test_conda_prefix="/xc2"
+test_conda_prefix="`pwd`/xc2"
 create="misc/create_bashenv_kickstart/create"
 
 remove_existing () {
@@ -10,7 +10,7 @@ remove_existing () {
 }
 
 test_create_scratch () {
-    $create -xAa -p "$test_conda_prefix" go
+    $create -p "$test_conda_prefix" go
     which python | grep "$test_conda_prefix"
 }
 
