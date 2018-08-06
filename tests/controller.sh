@@ -28,7 +28,6 @@ run () {
 }
 
 act_verify () {
-    set -x
     export PATH="$syspath"
     local prefix="${1:-xx}"
     source "$prefix/bin/activate"
@@ -38,7 +37,6 @@ act_verify () {
     which git         | grep "$prefix" || exit 1
     which constructor | grep "$prefix" || exit 1
     test -e "$prefix/.git" || exit 1
-    set +x
     # only this allows to remove directly after git -A:
     # otherwise the gc process conflicts with rm:
     # can't do, tests are also on non travis:
@@ -47,10 +45,10 @@ act_verify () {
 }
 
 del () {
+    # because of git's stupid gc which I can't turn off w/o git...
     for i in 1 2 3 4 5; do
         echo "trying delete $1..."
         /bin/rm -rf "$1" && return 0
-        # because of git's stupid gc which I can't turn off w/o git...
         echo "could not delete... trying again in 2"
         sleep 2
     done
