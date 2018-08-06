@@ -30,7 +30,7 @@ but that list can be extended.
 
 # Usage
 
-tbd - see tests for the moment.
+tbd - see [tests](tests/controller.sh) for the moment.
 
 
 
