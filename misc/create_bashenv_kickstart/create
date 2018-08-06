@@ -7,9 +7,10 @@ here="$(unset CDPATH && cd "$(dirname "$BASH_SOURCE")" && echo $PWD)"
 conda_prefix="/xc"
 base_packages="git mercurial constructor"
 dvcs=git
+HOME="${HOME:-/root}"
 
 # defaults, changeable on CLI switch basis:
-conda_pkg="/tmp/miniconda2.sh"
+cached_installer="/tmp/miniconda2.sh"
 
 usage="Creates a Bashenv Repo's 'init' branch from scratch
 
@@ -23,13 +24,13 @@ on installer.
 Options:
 -b: Bootstrap. We create a bashenv from scratch, i.e. not a new one from within
     an existing install with same prefix.
--C: Use this conda installer file [$conda_pkg]
+-C: Use this conda installer file [$cached_installer]
 -c: Create new repo - removing exiting $conda_prefix.$dvcs, if present
 -d: DVCS [$dvcs]
 -P: Push updates back to master
 -p: Set conda prefix [default: $conda_prefix]. If we are within another prefix this
     sets -b
--A: Add activate statement to $home/.bashrc
+-A: Add activate statement to $HOME/.bashrc
 
 If you point -g to a remote repo, you need git/hg already when running this - we do not
 download this as zip, just in order to create this ;-)
@@ -72,6 +73,9 @@ source_functions () {
 }
 
 parse_cli () {
+    echo "----"
+    echo "$me $*"
+    echo "----"
     OPTIND=
     while getopts "C:Ad:bp:g:x" opt; do
         case "$opt" in
@@ -80,7 +84,7 @@ parse_cli () {
             b) bootstrap_mode=true;;
             c) create_new_repo=true;;
             p) conda_prefix="$OPTARG";;
-            C) conda_pkg="$OPTARG";;
+            C) cached_installer="$OPTARG";;
             P) push_back=true;;
             g) repo_to_update_dir_or_url="$OPTARG";;
             x) set -x;;
@@ -122,15 +126,14 @@ _xxxfetch_repo_to_update_url () {
 
 
 get_miniconda () {
-    test -e "$conda_pkg" && { echo "already present: $conda_pkg"; return 0; }
-    web_get "$conda_url" "$conda_pkg"
+    test -e "$cached_installer" && { echo "already present: $cached_installer"; return 0; }
+    web_get "$conda_url" "$cached_installer"
 }
 
-chmod_conda () { chmod +x "$conda_pkg"; }
+chmod_conda () { chmod +x "$cached_installer"; }
 
 inst_conda () {
-
-    "$conda_pkg" -b -p "$conda_prefix"
+    "$cached_installer" -b -p "$conda_prefix"
 }
 
 activate_conda () {
@@ -140,10 +143,8 @@ activate_conda () {
 }
 
 add_base_packages () {
-    for p in $base_packages; do
-        echo "Adding base package $p"
-        conda install -y "$p"
-    done
+    echo "Adding base package $base_packages"
+    conda install -y $base_packages
 }
 
 clean_conda () {
@@ -172,7 +173,8 @@ create_dvcs_repo_if_missing () {
         $dvcs add "$fni" || true
     }
     test -e "README.md" || cat "$_fn_default_readme" > "README.md"
-    echo "Adding `$dvcs status | wc -l ` files"
+    echo "Adding:"
+    $dvcs status
     is_hg && hg -q addrem
     is_hg || git add -A
     $dvcs commit -qam 'by create' || true
@@ -313,5 +315,8 @@ main () {
     sh test_success
     show_info
 }
+
+# sourced? then return
+[[ "${BASH_SOURCE[0]}" != "${0}" ]] && return 0
 
 main $*

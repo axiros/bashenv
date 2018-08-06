@@ -50,19 +50,25 @@ test_create_scratch () {
 }
 
 test_construct_base_conda_installer () {
+    del "$d_inst"
     act_verify "$P1"
     mkdir -p "$d_inst"
     constructor --output-dir="$d_inst" "$here/misc/constructions/base"
     echo "constructed: `ls -lta $d_inst`"
-    base_installer="`/bin/ls /tmp/installers | grep base_`"
     #del "$P1"
 }
 
 test_bootstrap_from_constructed () {
     remove_existing "$P3"
+    base_installer="$d_inst/`/bin/ls $d_inst | grep base_`"
     "$create" -b -C "$base_installer" -p "$P3" go
     act_verify "$P3"
     del "$P3"
+    # reusing for future installs:
+    echo "copying base installer to cache"
+
+    source "$create"
+    cp "$base_installer" "$cached_installer"
 }
 
 
@@ -82,7 +88,7 @@ main () {
     ( run test_create_scratch                 )
     ( run test_construct_base_conda_installer )
     ( run test_bootstrap_from_constructed     )
-    #( run test_create_from_existing          )
+    ( run test_create_from_existing           )
 }
 
 main $*
