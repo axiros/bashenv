@@ -8,4 +8,4 @@ before_script:
 
 
 script:
-    echo "hello 2"
+    tests/controller.sh
