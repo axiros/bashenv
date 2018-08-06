@@ -1,12 +1,10 @@
 #!/usr/bin/env bash
 
 #!/usr/bin/env bash
-me="$0"
-be_dir="$(unset CDPATH && cd "$(dirname "${BASH_SOURCE[0]}")" && echo $PWD)"
 
 usage="Bashenv Activator
 
-Usage [sourced ]: source $me
+Usage [sourced ]: source be_active
 
 
 Options:
@@ -18,6 +16,7 @@ Example:
 
 "
 set -a
+be_dir="$(unset CDPATH && cd "$(dirname "${BASH_SOURCE[0]}")" && echo $PWD)"
 be_config_file="$be_dir/config"
 run_cmd=
 run_args=
