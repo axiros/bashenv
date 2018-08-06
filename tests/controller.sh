@@ -18,6 +18,7 @@ base_installer=
 export be_force_colors=true
 syspath="$PATH"
 
+# should contain tests:
 test_config1="misc/be_configs/reactive_python2.7"
 
 run () {
@@ -61,7 +62,7 @@ test_create_scratch () {
     act_verify "$P1"
 }
 
-test_construct_base_conda_installer () {
+test_construct_relocatable_conda_installer_with_packages () {
     del "$d_inst"
     act_verify "$P1"
     mkdir -p "$d_inst"
@@ -95,10 +96,10 @@ test_create_from_existing_with_packages () {
 
 
 main () {
-    ( run test_create_scratch                 )
-    ( run test_construct_base_conda_installer )
-    ( run test_bootstrap_from_constructed     )
-    ( run test_create_from_existing           )
+    ( run test_create_scratch                                      )
+    ( run test_construct_relocatable_conda_installer_with_packages )
+    ( run test_bootstrap_from_constructed                          )
+    ( run test_create_from_existing                                )
 }
 
 main $*

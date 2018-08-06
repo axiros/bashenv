@@ -194,12 +194,21 @@ do_push_up_to_master () {
 test_success () {
     which python | grep "$conda_prefix" | grep -v grep >/dev/null
     have_be_config_file || return 0
+
     while read -r line; do
         line="`echo "$line" | xargs`"
         test "${line:-}x" == "x" && continue
         nfo "testing: $line"
         $line
     done <<< "${tests:-}"
+
+    while read -r line; do
+        line="`echo "$line" | xargs`"
+        test "${line:-}x" == "x" && continue
+        nfo "testing: python -c $line"
+        eval "python -c \"$line\""
+    done <<< "${tests_python:-}"
+
 }
 
 show_info () {
