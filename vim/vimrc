@@ -4,10 +4,10 @@ filetype off
 set encoding=utf-8
 
 " set the runtime path to include Vundle and initialize
-set rtp+=$GO_TARGET_bashenv/vim
-set rtp+=$GO_TARGET_bashenv/vim/bundle/Vundle.vim
-set rtp+=$GO_TARGET_bashenv/vim/bundle/tabular
-set rtp+=$GO_TARGET_bashenv/vim/bundle/supertab
+set rtp+=$be_dir/vim
+set rtp+=$be_dir/vim/bundle/Vundle.vim
+set rtp+=$be_dir/vim/bundle/tabular
+set rtp+=$be_dir/vim/bundle/supertab
 "set rtp+=
 " set rtp+=~/.vim/bundle/Vundle.vim
 

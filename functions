@@ -96,15 +96,15 @@ die () {
 }
 
 sh () {
-    local nofail=false
-    test "${1:-}x" == "nofailx" && {
-        nofail=true
+    local dying=false
+    test "${1:-}x" == "dyingx" && {
+        dying=true
         shift
     }
     local cmd="$*"
     echo
     echo -e "${M}$cmd"$O
-    $cmd || { $nofail && return 1 || die "Failed: $cmd"; }
+    $cmd || { $dying && die "Failed: $cmd" || return 1; }
 }
 
 current_prefix () { local bin="`dirname which python`"; }

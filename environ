@@ -8,6 +8,6 @@ set -u
 [[ -t 1 ]] && be_interactive=true || be_interactive=false
 
 # evaluated in the `go` function (go bashe):
-export GO_TARGET_bashenv="${be_dir:-}"
+export be_go_target_bashenv="${be_dir:-}"
 export be_interactive
 

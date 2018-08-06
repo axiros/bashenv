@@ -232,7 +232,7 @@ do_activate_existing_for_git_hg () {
     do_check_if_conda_is_activated || \
     do_check_if_located_within_existing_install && \
     export PATH="$_take_bashenv_from_conda_prefix/bin:$PATH"
-    do_check_if_conda_is_activated || die "Could not activate"
+    do_check_if_conda_is_activated || return 1
 }
 
 do_check_set_bootstrap_mode () {
@@ -276,9 +276,9 @@ do_activate_subshell () {
 main () {
     source_functions
     parse_cli $* || exit_sh_help
-    sh nofail do_check_if_located_within_existing_install || true
-    sh nofail do_check_if_conda_is_activated || true
-    sh do_activate_existing_for_git_hg
+    sh do_check_if_located_within_existing_install || true
+    sh do_check_if_conda_is_activated || true
+    sh do_activate_existing_for_git_hg || true
     sh do_check_set_bootstrap_mode
     #sh do_bootstrap_remove_existing
     # sh fetch_repo_to_update_url || die "Error fetching repo"
