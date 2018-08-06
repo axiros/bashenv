@@ -3,27 +3,29 @@
 me="$0"
 here="$(unset CDPATH && cd "$(dirname "$BASH_SOURCE")" && echo $PWD)"
 
+# TODO: understand envs and $pyver (hg then in env)
+
 # we don't do tmp, thats to risky in container age's private tmps:
 conda_prefix="/xc"
+channels=
+packages=
+pips=
 base_packages="git mercurial constructor"
 dvcs=git
 HOME="${HOME:-/root}"
+be_config_file=
 
-# defaults, changeable on CLI switch basis:
 cached_installer="/tmp/miniconda2.sh"
 
-usage="Creates a Bashenv Repo's 'init' branch from scratch
+usage="Creates Bashenv Repos From Scratch
 
 Usage: $me [OPTIONS] go
-
-The init branch is to allow to later create bashenvs from a config file but w/o
-the need for git or hg, i.e. it is intended to be downloaded as snapshot, with
-on installer.
-
 
 Options:
 -b: Bootstrap. We create a bashenv from scratch, i.e. not a new one from within
     an existing install with same prefix.
+-c: Read config file [default from any activated bashenv's prefix/be_config file
+    Samples in misc/be_configs
 -C: Use this conda installer file [$cached_installer]
 -c: Create new repo - removing exiting $conda_prefix.$dvcs, if present
 -d: DVCS [$dvcs]
@@ -77,9 +79,11 @@ parse_cli () {
     echo "$me $*"
     echo "----"
     OPTIND=
-    while getopts "C:Ad:bp:g:x" opt; do
+    while getopts "c:C:Ad:bp:g:xh" opt; do
         case "$opt" in
             d) dvcs="$OPTARG";;
+            c) be_config_file="$OPTARG";;
+            h) exit_sh_help;;
             A) add_activate_to_bashrc=true;;
             b) bootstrap_mode=true;;
             c) create_new_repo=true;;
@@ -88,12 +92,12 @@ parse_cli () {
             P) push_back=true;;
             g) repo_to_update_dir_or_url="$OPTARG";;
             x) set -x;;
-            *) exit_sh_help
+            *) exit_sh_help 1
         esac
     done
     shift $((OPTIND-1))
     run_cmd="${1:-}"
-    test "${run_cmd:-}x" != "gox" && exit_sh_help || return 0
+    test "${run_cmd:-}x" != "gox" && exit_sh_help 1 || return 0
 }
 
 do_bootstrap_remove_existing () {
@@ -189,6 +193,13 @@ do_push_up_to_master () {
 
 test_success () {
     which python | grep "$conda_prefix" | grep -v grep >/dev/null
+    have_be_config_file || return 0
+    while read -r line; do
+        line="`echo "$line" | xargs`"
+        test "${line:-}x" == "x" && continue
+        nfo "testing: $line"
+        $line
+    done <<< "${tests:-}"
 }
 
 show_info () {
@@ -200,10 +211,11 @@ show_info () {
     $push_back && echo "The repo was pushed" || echo "The repo can be pushed"
     echo
     echo "Activate with:"
-    echo "export PATH="$conda_prefix/bin:\$PATH""
+    echo "source "$conda_prefix"/bin/activate"
 }
 do_check_if_located_within_existing_install () {
     local d="$here"
+    test "${_take_bashenv_from_conda_prefix:-}x" != "x" && return 0
     while true; do
         test "x$d" == "x/" && return 1
         d="`dirname "$d"`"
@@ -273,25 +285,85 @@ copy_base_env_over () {
     ( cd "$dest" && find . | grep '.'$dvcs'$' | xargs rm -rf )
 }
 
+add_activate_script () {
+    local d="$conda_prefix/etc/conda/activate.d"
+    mkdir -p "$d"
+    echo -e "#!/usr/bin/env bash
+source "\$CONDA_PREFIX$_bin_app_env_bash/be_active"
+    " > "$d/bashenv.sh"
+}
+
 do_add_activate_to_bashrc () {
     $add_activate_to_bashrc || { echo "Not adding to bashrc"; return 0; }
     local fn="$HOME/.bashrc"
-    local msg='source "'$conda_prefix''$_bin_app_env_bash'/be_active"'
+    local marker='/bin/activate" # bashenv'
+    local msg='source "'$conda_prefix''$marker''
     nfo "Adding to $fn: $msg"
     local i="`mktemp`" # sed !
-    cat "$fn" | grep -v "$_bin_app_env_bash" | grep -v "Added by bashenv" > "$i"
+    cat "$fn" | grep -v "$marker" | grep -v "Added by bashenv" > "$i"
     cat "$i" > "$fn"
     echo "# Added by bashenv installer [`date`]" >> "$fn"
     echo -e "$msg" >> "$fn"
 }
 
+have_be_config_file () { test "${be_config_file}x" != "x"; }
+
+source_configfile () {
+    while getopts "c:" opt 2>/dev/null; do
+        case "$opt" in
+            c) be_config_file="`readlink -f "$OPTARG"`";; # abspath, we will cd
+            *) true;;
+        esac
+    done
+
+    have_be_config_file || {
+        local ec="${_take_bashenv_from_conda_prefix:-xx}/be_config"
+        test -e "$ec" && {
+            be_config_file="$ec"
+        }
+    }
+    have_be_config_file || {
+        warn "no config file"
+        return 0
+    }
+    set -a
+    nfo "Sourcing $be_config_file"
+    source "$be_config_file" || exit_sh_help 1
+    set +a
+}
+
+add_channels () {
+    for c in $channels; do
+        nfo "Adding channel $c"
+        conda config --add channels "$c"
+    done
+}
+
+add_packages () {
+    while read -r line; do
+        line="`echo "$line" | xargs`"
+        test "${line:-}x" == "x" && continue
+        nfo "conda install $line"
+        conda install -y $line
+    done <<< "$packages"
+}
+
+add_pips () {
+    for c in $pips; do
+        nfo "Adding pip $c"
+        pip install "$c"
+    done
+}
+
+
 
 
 main () {
     source_functions
-    parse_cli $* || exit_sh_help
-    sh do_check_if_located_within_existing_install || true
     sh do_check_if_conda_is_activated || true
+    sh do_check_if_located_within_existing_install || true
+    sh source_configfile $*
+    parse_cli $* || exit_sh_help
     sh do_activate_existing_for_git_hg || true
     sh do_check_set_bootstrap_mode
     sh prevent_copy_into_same_dir
@@ -307,6 +379,10 @@ main () {
     }
     sh do_fail_on_no_git_hg
     sh copy_base_env_over
+    sh add_activate_script
+    sh add_channels
+    sh add_packages
+    sh add_pips
     sh clean_conda
     sh cd_conda
     sh create_dvcs_repo_if_missing

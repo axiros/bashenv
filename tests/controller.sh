@@ -8,15 +8,17 @@ cd ..
 here="`pwd`"
 
 P1="/tmp/xc"
-P2="/tmp/xc2"
-P3="/tmp/xc3"
-create_rel="misc/create_bashenv_kickstart/create"
+P3="/tmp/xc2"
+P2="/tmp/xc3"
+create_rel="misc/create_bashenv/create"
 create="$here/$create_rel"
 d_inst="/tmp/installers"
 # created at second test:
 base_installer=
 export be_force_colors=true
 syspath="$PATH"
+
+test_config1="misc/be_configs/reactive_python2.7"
 
 run () {
     echo
@@ -29,15 +31,18 @@ run () {
 
 del () {
     for i in 1 2 3 4 5 6 7 8 9; do
-        /bin/rm -rf "$1" && return 0 || true
+        echo "trying delete $1..."
+        /bin/rm -rf "$1" && return 0
         # because of git's stupid gc which I can't turn off w/o git...
         echo "could not delete... trying again in 2"
         sleep 2
     done
+    return 0
 }
 
 act_verify () {
-    export PATH="$1/bin:$syspath"
+    export PATH="$syspath"
+    source "$1/bin/activate"
     which python | grep "$1" || exit 1
     which hg          | grep "$1" || exit 1
     which git         | grep "$1" || exit 1
@@ -66,11 +71,10 @@ test_construct_base_conda_installer () {
 }
 
 test_bootstrap_from_constructed () {
-    del "$P3"
+    del "$P2"
     base_installer="$d_inst/`/bin/ls $d_inst | grep base_`"
-    "$create" -b -C "$base_installer" -p "$P3" go
-    act_verify "$P3"
-    del "$P3"
+    "$create" -b -C "$base_installer" -p "$P2" go
+    act_verify "$P2"
     # reusing for future installs:
     echo "copying base installer to cache"
 
@@ -79,14 +83,13 @@ test_bootstrap_from_constructed () {
 }
 
 
-test_create_from_existing () {
-    del "$P2"
+test_create_from_existing_with_packages () {
+    del "$P3"
     p="$PATH"
-    source "$P1/bin/app/environ/bash/be_active"
+    source "$P1/bin/activate"
     nfo "have it"
-    "$P1/bin/app/environ/bash/$create_rel" -bp "$P2" go
-    act_verify "$P2"
-    del "$P2"
+    "$P1/bin/app/environ/bash/$create_rel" -b -p "$P3" -c "$test_config1" go
+    act_verify "$P3"
 }
 
 

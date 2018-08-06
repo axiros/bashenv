@@ -29,9 +29,14 @@ require () {
 }
 
 exit_sh_help () {
-    local h="${1:-$usage}"
+    local exitcode=0
+    if [ "${1:-}x" == "0x" -o "${1:-}x" == "1x" ] ; then
+        exitcode=$1
+        shift
+    fi
+    local h="${1:-${usage:-}}"
     echo -e "$h"
-    exit 1
+    exit $exitcode
 }
 
 # Find files
@@ -111,4 +116,3 @@ sh () {
 
 current_prefix () { local bin="`dirname which python`"; }
 
-exit_sh_help () { echo -e "$usage"; exit 1; }
