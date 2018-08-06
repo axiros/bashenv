@@ -53,4 +53,7 @@ title2 () { cli_markdown "## $*"; }
 
 sep () { cli_markdown "---"; }
 
-$be_interactive || export be_theme="nocolors"
+test "${be_interactive:-}x" == "truex" || {
+    test "${be_force_colors:-}x" == "truex" || be_theme=nocolors 
+}
+

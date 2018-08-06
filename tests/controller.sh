@@ -10,28 +10,30 @@ here="`pwd`"
 P1="/tmp/xc"
 P2="/tmp/xc2"
 P3="/tmp/xc3"
-create="$here/misc/create_bashenv_kickstart/create"
+create_rel="misc/create_bashenv_kickstart/create"
+create="$here/$create_rel"
 d_inst="/tmp/installers"
 # created at second test:
 base_installer=
-
+export be_force_colors=true
 syspath="$PATH"
 
-remove_existing () {
-    rm -rf "$1" || true
-}
 run () {
     echo
     echo '*******************************************'
-    echo "$1"
+    echo TEST: "$1"
     echo '*******************************************'
     echo
     $1
 }
 
 del () {
-    echo "erasing $1"
-    rm -rf "$1"
+    for i in 1 2 3 4 5 6 7 8 9; do
+        /bin/rm -rf "$1" && return 0 || true
+        # because of git's stupid gc which I can't turn off w/o git...
+        echo "could not delete... trying again in 2"
+        sleep 2
+    done
 }
 
 act_verify () {
@@ -41,10 +43,15 @@ act_verify () {
     which git         | grep "$1" || exit 1
     which constructor | grep "$1" || exit 1
     test -e "$1/.git" || exit 1
+    # only this allows to remove directly after git -A:
+    # otherwise the gc process conflicts with rm:
+    # can't do, tests are also on non travis:
+    # looping in del instead... :-/
+    #git config --global gc.auto 0
 }
 
 test_create_scratch () {
-    remove_existing "$P1"
+    del "$P1"
     $create -p "$P1" go
     act_verify "$P1"
 }
@@ -59,7 +66,7 @@ test_construct_base_conda_installer () {
 }
 
 test_bootstrap_from_constructed () {
-    remove_existing "$P3"
+    del "$P3"
     base_installer="$d_inst/`/bin/ls $d_inst | grep base_`"
     "$create" -b -C "$base_installer" -p "$P3" go
     act_verify "$P3"
@@ -73,14 +80,14 @@ test_bootstrap_from_constructed () {
 
 
 test_create_from_existing () {
-    remove_existing "$P2"
+    del "$P2"
     p="$PATH"
     source "$P1/bin/app/environ/bash/be_active"
     nfo "have it"
-    "$P1/bin/app/environ/bash/$create" -bp "$P2" go
-    verify "$P2"
+    "$P1/bin/app/environ/bash/$create_rel" -bp "$P2" go
+    act_verify "$P2"
+    del "$P2"
 }
-
 
 
 
