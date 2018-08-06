@@ -135,12 +135,13 @@ update_if_exists () {
 }
 
 clone_if_not_exists () {
+    test -e "$D" && return 0
     sh activate_dvcs
     $dvcs clone "$bash_env_from" "$here/bashenv"
 }
 
 activate_bashenv () {
-    "$D/activate $run_args"
+    "$D/activate" $run_args
 }
 
 main () {
