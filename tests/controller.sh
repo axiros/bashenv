@@ -28,6 +28,7 @@ run () {
 }
 
 act_verify () {
+    set -x
     export PATH="$syspath"
     local prefix="${1:-xx}"
     source "$prefix/bin/activate"
@@ -37,6 +38,7 @@ act_verify () {
     which git         | grep "$prefix" || exit 1
     which constructor | grep "$prefix" || exit 1
     test -e "$prefix/.git" || exit 1
+    set +x
     # only this allows to remove directly after git -A:
     # otherwise the gc process conflicts with rm:
     # can't do, tests are also on non travis:
@@ -95,9 +97,9 @@ test_create_from_existing_with_packages () {
 
 
 main () {
-    #( run test_create_scratch                                      )
-    #( run test_construct_relocatable_conda_installer_with_packages )
-    #( run test_bootstrap_from_constructed                          )
+    ( run test_create_scratch                                      )
+    ( run test_construct_relocatable_conda_installer_with_packages )
+    ( run test_bootstrap_from_constructed                          )
     ( run test_create_from_existing_with_packages                  )
 }
 
