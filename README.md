@@ -41,22 +41,21 @@ development_chroot root@ip-10-34-2-19:/# cat /root/bashenv/misc/be_configs/react
 
 conda_prefix="/xc.$(basename $be_config_file)"
 
-packages="-c conda-forge jq httpie
-"
+# one line per conda install statement:
+packages="-c conda-forge jq httpie"
 
 pips="structlog rx gevent"
 
-tests='
-http --version
-jq --version
-'
 # adds all sys.paths into $PYTHONPATH based on this file:
 local_pypath_from_sys_path_in="/opt/server/bin/paster"
 # note: that will make any constructed installer package only work
 # like expected when these external deps are present on the target
 # as well.
 
-
+tests='
+http --version
+jq --version
+'
 tests_python='import rx, structlog; print(structlog, rx)'
 ```
 
