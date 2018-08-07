@@ -223,7 +223,7 @@ show_info () {
     echo
     echo ".$dvcs is updated"
     $push_back && echo "The repo was pushed" || echo "The repo can be pushed"
-    echo
+    echo ""
     echo "Activate with:"
     echo "source "$conda_prefix"/bin/activate"
 }
@@ -374,17 +374,26 @@ add_pips () {
 }
 
 add_locals () {
+    # we append the sys.path for local stuff at the end by default,
+    # so that conda still works nicely and does not conflict:
     local lpfs="$local_pypath_from_sys_path_in"
     test "${lpfs:-}x" == "x" && return 0
     local d="`mktemp -d`"
     cp "$lpfs" "$d/lpfs.py"
     local pp="`( cd "$d" && python -c 'if 1:
-        import sys, lpfs
-        print(":".join(sys.path))'
+        import sys
+        h=list(sys.path)
+        import lpfs
+        # add those at end:
+        h.extend( [i for i in sys.path if not i in h] )
+        print(":".join(h))'
     )`"
     d="$conda_prefix/etc/conda/activate.d/local_pypath_from_sys.sh"
+    # remember if path alraeady set, this is sourced for every subshell:
     echo "# from $lpfs:" > "$d"
+    echo 'test "${be_syspath_set:-}x" == "truex" && return 0' >> "$d"
     echo 'export PYTHONPATH="'$pp':${PYTHONPATH:-}"' >> "$d"
+    echo 'export be_syspath_set=true' >> "$d"
     nfo "have written $d:"
     cat "$d"
 }
