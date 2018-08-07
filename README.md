@@ -41,8 +41,11 @@ development_chroot root@ip-10-34-2-19:/# cat /root/bashenv/misc/be_configs/react
 
 conda_prefix="/xc.$(basename $be_config_file)"
 
-# one line per conda install statement:
-packages="-c conda-forge jq httpie"
+# one line per conda install statement.
+# These are binary packages for your architecture already, installed within the prefix:
+packages="-c conda-forge jq httpie uwsgi
+nginx
+"
 
 pips="structlog rx gevent"
 
