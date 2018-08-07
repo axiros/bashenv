@@ -71,8 +71,9 @@ The rest is identical. Should be clear that you cannot change the architecture o
 
 
 # Name
-Why "bashenv" and not "shellenv", "condaenv", "linuxenv", "fastenv"... ?
+Why "bashenv" and not "shellenv", "condaenv", "linuxenv", "simpleenv"... ?
 - I like the `$be_<key>` env vars
+- [shellenv](https://github.com/aspiers/shell-env) was taken, not just [once](https://www.google.de/search?q=github+shellenv).
 - It is not just for humans (would have taken zsh if so) but also for processes and bash covers both quite well
 - Conda is at the time being way sufficient for our needs but container filesystems as part of solutions are also planned.
 
