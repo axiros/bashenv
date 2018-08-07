@@ -45,12 +45,15 @@ conda_prefix="/xc.$(basename $be_config_file)"
 packages="-c conda-forge jq httpie
 "
 
-pips="structlog rx"
+pips="structlog rx gevent"
 
 tests='
 http --version
 jq --version
 '
+# adds all sys.paths into $PYTHONPATH based on this file:
+local_pypath_from_sys_path_in="/opt/axess/bin/paster"
+
 tests_python='import rx, structlog; print(structlog, rx)'
 ```
 
