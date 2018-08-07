@@ -37,7 +37,7 @@ but that list can be extended via the config.
 ## Example Config
 
 ```bash
-development_chroot root@ip-10-34-2-19:/# cat /root/gk/bashenv/misc/be_configs/reactive_python2.7
+development_chroot root@ip-10-34-2-19:/# cat /root/bashenv/misc/be_configs/reactive_python2.7
 #!/usr/bin/env bash
 
 conda_prefix="/xc.$(basename $be_config_file)"
@@ -52,7 +52,7 @@ http --version
 jq --version
 '
 # adds all sys.paths into $PYTHONPATH based on this file:
-local_pypath_from_sys_path_in="/opt/axess/bin/paster"
+local_pypath_from_sys_path_in="/opt/server/bin/paster"
 
 tests_python='import rx, structlog; print(structlog, rx)'
 ```
