@@ -68,6 +68,13 @@ Download the Anaconda installer for those manually and provide their location vi
 The rest is identical. Should be clear that you cannot change the architecture of an already created bashenv on the fly, you have to start from scratch or an existing bashenv in your architecture.
 
 
+# Name
+Why "bashenv" and not "shellenv", "condaenv", "linuxenv", "fastenv"... ?
+- I like the `$be_<key>` env vars
+- It is not just for humans (would have taken zsh if so) but also for processes and bash covers both quite well
+- Conda is at the time being way sufficient for our needs but container filesystems as part of solutions are also planned.
+
+So its bashenv mainly for the fact that you need nothing else then bash to start flying ;-)
 
 
 [constructor]: https://tech.zegami.com/conda-constructor-tutorial-make-your-python-code-easy-to-install-cross-platform-f0c1f3096ae4 
