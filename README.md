@@ -2,8 +2,7 @@
 
 [![Build Status](https://travis-ci.org/axiros/bashenv.svg?branch=master)](https://travis-ci.org/axiros/bashenv)
 
-This sets up enviroments with some bash helper features plus [conda](https://anaconda.org/)
-based package management.
+This sets up enviroments with some bash helper features plus [conda](https://anaconda.org/) package management.
 
 From any Unix environment with only wget or curl you can define the tools you
 need in a config file, then start an installer producing the intended environment...
