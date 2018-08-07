@@ -15,6 +15,10 @@ dvcs=git
 HOME="${HOME:-/root}"
 be_config_file=
 
+# filename which sets sys.path, which we will turn into PYTHONPATH:
+# e.g. a buildout result:
+local_pypath_from_sys_path_in=
+
 cached_installer="/tmp/miniconda2.sh"
 
 usage="Creates Bashenv Repos From Scratch
@@ -83,7 +87,7 @@ parse_cli () {
     while getopts "$_opts" opt; do
         case "$opt" in
             d) dvcs="$OPTARG";;
-            c) be_config_file="$OPTARG";;
+            c) be_config_file_orig="$OPTARG";; # read already for config defaults
             h) exit_sh_help;;
             A) add_activate_to_bashrc=true;;
             b) bootstrap_mode=true;;
@@ -107,7 +111,7 @@ do_bootstrap_remove_existing () {
         return 0
     }
     msg="$conda_prefix already present"
-    msg=" - move it away, then run $me again from there"
+    msg="$msg - move it away, then run $me again from there"
     die "$msg"
 }
 
@@ -305,7 +309,7 @@ source "\$CONDA_PREFIX$_bin_app_env_bash/be_active"
 
 do_add_activate_to_bashrc () {
     $add_activate_to_bashrc || { echo "Not adding to bashrc"; return 0; }
-    local fn="$HOME/.bashrc"
+    local fn="${HOME:-/root}/.bashrc"
     local marker='/bin/activate" # bashenv'
     local msg='source "'$conda_prefix''$marker''
     nfo "Adding to $fn: $msg"
@@ -369,8 +373,48 @@ add_pips () {
     done
 }
 
+add_locals () {
+    local lpfs="$local_pypath_from_sys_path_in"
+    test "${lpfs:-}x" == "x" && return 0
+    local d="`mktemp -d`"
+    cp "$lpfs" "$d/lpfs.py"
+    local pp="`( cd "$d" && python -c 'if 1:
+        import sys, lpfs
+        print(":".join(sys.path))'
+    )`"
+    d="$conda_prefix/etc/conda/activate.d/local_pypath_from_sys.sh"
+    echo "# from $lpfs:" > "$d"
+    echo 'export PYTHONPATH="'$pp':${PYTHONPATH:-}"' >> "$d"
+    nfo "have written $d:"
+    cat "$d"
+}
 
+force_utf8 () {
+    # on py2 there were problems sourcing activtion shell scripts with unicode.
+    # they went away after setting FILESSYSTEMENCODING away from
+    # ANSI_X3.4-1968o to utf-8
+    # lets force all utf-8 and get fine python2:
+    test -e "$conda_prefix/lib/python2.7/" || return 0
+    local lc="$conda_prefix/lib/python2.7/sitecustomize.py"
+    cp "$here/utf8_2.7_sitecustomize.py" "$lc"
+    sh cat "$lc"
+}
 
+write_be_config () {
+    local c="$conda_prefix/be_config"
+    echo "# `date`"     > "$c"
+    echo "# by $me $*" >> "$c"
+    `have_be_config_file` && {
+        echo "# config contents:"
+        cat "$be_config_file" >> "$c"
+    }
+    echo >> "$c"
+}
+
+mkdir_etc_conda_activate () {
+    # contains all activation scripts, sourced:
+    mkdir -p "$conda_prefix/etc/conda/activate.d"
+}
 
 main () {
     source_functions
@@ -391,12 +435,16 @@ main () {
         sh activate_conda
         sh add_base_packages
     }
+    sh mkdir_etc_conda_activate
     sh do_fail_on_no_git_hg
     sh copy_base_env_over
     sh add_activate_script
     sh add_channels
     sh add_packages
     sh add_pips
+    sh add_locals
+    sh force_utf8
+    sh write_be_config $*
     sh clean_conda
     sh cd_conda
     sh create_dvcs_repo_if_missing
