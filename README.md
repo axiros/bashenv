@@ -76,6 +76,11 @@ The rest is identical. Should be clear that you cannot change the architecture o
 # Name
 Why "bashenv" and not "shellenv", "condaenv", "linuxenv", "simpleenv", "pp (portable packages)"... ?
 
+## General
+- I like the `$be_<key>` env vars (`be_verbose=true`) and shell function calls like `be reactive`, `be verbose`
+- It is not a packaging tool, just re-uses other binary packaging tools, mainly Conda
+- Conda is at the time being way sufficient for our needs but container filesystems as part of solutions are also planned.
+
 ## `bash...`
 - You need nothing else then bash to start flying and bash is everywhere. 
 - It is not just for humans (then it would be zshenv) but also for processes and bash covers both quite well
@@ -85,10 +90,6 @@ Why "bashenv" and not "shellenv", "condaenv", "linuxenv", "simpleenv", "pp (port
 - Because you do not leave your current process environment when activating it - but get it enriched.
 => You could activate it on demand, e.g. within a pipeline...
 
-## General
-- I like the `$be_<key>` env vars (`be_verbose=true`) and commands like `be reactive`, `be verbose`
-- It is not a packaging tool, just re-uses other binary packaging tools, mainly conda
-- Conda is at the time being way sufficient for our needs but container filesystems as part of solutions are also planned.
 
 
 
