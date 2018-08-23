@@ -105,6 +105,15 @@ parse_cli () {
     test "${run_cmd:-}x" != "gox" && exit_sh_help 1 || return 0
 }
 
+check_local_paths_present () {
+    local p="$local_pypath_from_sys_path_in"
+    test "${p:-}x" != "x" && {
+        test -e "$p" || \
+            die "\$local_pypath_from_sys_path_in (set to $p) not found"
+    }
+}
+
+
 do_bootstrap_remove_existing () {
     test -e "$conda_prefix" || {
         echo "None found at $conda_prefix"
@@ -258,8 +267,8 @@ do_check_if_conda_is_activated () {
 
 do_activate_existing_for_git_hg () {
     do_check_if_conda_is_activated || \
-    do_check_if_located_within_existing_install && \
-    export PATH="$_take_bashenv_from_conda_prefix/bin:$PATH"
+        do_check_if_located_within_existing_install && \
+        export PATH="$_take_bashenv_from_conda_prefix/bin:$PATH"
     do_check_if_conda_is_activated || return 1
 }
 
@@ -425,12 +434,16 @@ mkdir_etc_conda_activate () {
     mkdir -p "$conda_prefix/etc/conda/activate.d"
 }
 
+
+
+
 main () {
     source_functions
     sh do_check_if_conda_is_activated || true
     sh do_check_if_located_within_existing_install || true
     sh source_configfile $*
     parse_cli $* || exit_sh_help
+    sh check_local_paths_present
     sh do_activate_existing_for_git_hg || true
     sh do_check_set_bootstrap_mode
     sh prevent_copy_into_same_dir
