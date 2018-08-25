@@ -11,7 +11,7 @@ out () {
 warn () {
     out "$R█ $O$*$O"
 }
-good () {
+ok () {
     out "$G█ $O$*$O"
 }
 die () {
