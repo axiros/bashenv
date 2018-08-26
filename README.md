@@ -68,7 +68,7 @@ tests_python='import rx, structlog; print(structlog, rx)'
 
 # Usage
 
-tbd - see [tests](tests/controller.sh) for the moment.
+tbd - see [tests](tests/runner.sh) for the moment.
 
 
 ## OSX / Other Platforms
