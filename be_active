@@ -26,12 +26,23 @@ Options:
 None currently
 
 Args:
-Positional: <activate us> <be_act_func_name>
+Positional: <be_active_now> [be_act_func_name]
 
 Actions:
 
 Example:
 
+Activate, no setting of an act_func:
+
+    be_active true
+
+
+Just register, set an act_func:
+
+    be_active false be_reactive
+
+Note: The create function adds this into .bashrc with an act_func name derived
+from your prefix.
 "
 # We have to take care to not modify environ since we are sourced even if NOT
 # active, by .bashrc
@@ -62,7 +73,7 @@ be_parse_cli () {
     shift $((OPTIND-1))
     # those are set from the .bashrc statement from the installer:
     be_active_now="$1"           ; shift
-    be_act_func_name="$1"        ; shift
+    be_act_func_name="${1:-}"    ; shift
 }
 
 be_derive_conda_prefix_from_be_dir() {
@@ -95,7 +106,6 @@ be_base_activations () {
     add_path "$conda_prefix/bin" # noop if there
 }
 
-
 be_activate_bashenv () {
     test "${1:-}x" == "x" && { echo "require prefix argument"; return 1; } 
     # we export this function - but other bashenvs do the same. So we require:
@@ -116,7 +126,6 @@ be_activate_bashenv () {
     set +eux
 }
 
-
 be_make_us_known () {
     we_where_known=true # won't create activation function then
     [[ "$be_bashenvs_known" == *:$conda_prefix:* ]] && return 0
@@ -126,6 +135,7 @@ be_make_us_known () {
 
 be_export_activation_function_if_not_known () {
     $we_where_known && return 0
+    test "${be_act_func_name:-}x" == "x" && return 0
     export -f be_activate_bashenv
     export -f be_base_activations
     eval "$be_act_func_name () { be_activate_bashenv \"$conda_prefix\"; }

@@ -102,14 +102,22 @@ test_create_scratch () {
     del "$P1"
     $fn_create -p "$P1" -G go
     # we did change .bashrc (no -N):
-    local fn="${HOME:-/root}/.bashrc"
-    ( source "$fn"; be_xc_tmp; verify "$P1"; ) || exit 1
+    local fn_bashrc="${HOME:-/root}/.bashrc"
+    (
+       set +eux
+       origflags="$-"
+       source "$fn_bashrc"
+       # flags should be in orig state after sourcing the be_active:
+       set -x; test "$-" == "$origflags" || exit 1; set +x
+       be_xc_tmp
+       verify "$P1"
+    ) || exit 1
     # now we have git and hg and pip:
     act_verify "$P1"
     # remove this from .bashrc:
     local tmp="`mktemp`"
-    cat "$fn" | grep -v "$P1" > "$tmp"
-    cat "$tmp" > "$fn"
+    cat "$fn_bashrc" | grep -v "$P1" > "$tmp"
+    cat "$tmp" > "$fn_bashrc"
     /bin/rm -f "$tmp"
 }
 

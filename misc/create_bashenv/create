@@ -54,6 +54,12 @@ Notes:
 -A: By default we just add a function ('be_<your prefix>') to activate on demand
 to your .bashrc.
 
+-N: You can prevent any change in your bashrc by this.
+    Downsides:
+    - Activation then only via sourcing
+      <prefix>/bin/app/environ/bash/be_active true
+    - No entry into \$be_bashenvs_known
+
 -g: If you point to a remote repo, you need git/hg already when running this -
 we do not download this as zip, just in order to create this ;-)
 
