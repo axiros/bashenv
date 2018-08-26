@@ -112,17 +112,20 @@ test_create_scratch () {
        source "$fn_register_file"
        # flags should be in orig state after sourcing the be_active:
        test "$-" == "$origflags" || exit 1
+       set +x
        be_xc_tmp
        verify "$P1"
     ) || exit 1
     # now we have git and hg and pip:
     act_verify "$P1"
-
+    set -x
     # remove this from .bashrc:
     local tmp="`mktemp`"
     cat "$fn_register_file" | grep -v "$P1" > "$tmp"
     cat "$tmp" > "$fn_register_file"
     /bin/rm -f "$tmp"
+    set +x
+    return 0
 }
 
 test_construct_relocatable_conda_installer_with_packages () {
