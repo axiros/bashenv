@@ -48,6 +48,7 @@ Options:
 -p: Set conda prefix [default: $conda_prefix].
     If we are within another prefix this sets -b (bootstrap mode)
 -A: Auto activate, via $HOME/.bashrc.
+-N: Do NOT touch bashrc (not even to register the activation function)
 
 Notes:
 
@@ -84,11 +85,12 @@ require_ldd_weakref_fix=false
 remove_packages=true
 push_back=false
 
-add_activate_to_bashrc=false
+auto_activate_via_bashrc=false
+do_touch_bashrc=true
 
 
 # -------------------------------------------------------------------- internal
-_opts="PDc:C:AGd:bp:g:xh"
+_opts="PDc:C:NAGd:bp:g:xh"
 _take_bashenv_from_conda_prefix=
 # fix. always:
 _bin_app_env_bash="/bin/app/environ/bash"
@@ -109,7 +111,8 @@ parse_cli () {
             d) dvcs="$OPTARG";;
             c) be_config_file_orig="$OPTARG";; # read already for config defaults
             h) exit_sh_help;;
-            A) add_activate_to_bashrc=true;;
+            A) auto_activate_via_bashrc=true;;
+            N) do_touch_bashrc=false;;
             b) bootstrap_mode=true;;
             G) create_new_repo=true;;
             D) remove_existing_repo=true;;
@@ -143,7 +146,7 @@ check_enforce_repo_switches () {
         $push_back && {
             die "-G (repo create) not set, cannot push back a not existing repo"
         }
-        say "Not required, wont' create repo"
+        nfo "Not required, wont' create repo"
         return 0
     }
     test -e "$conda_prefix/.$dvcs" || return 0
@@ -203,7 +206,7 @@ activate_conda () {
     ( source "$conda_prefix/bin/activate" ) || {
         export LD_LIBRARY_PATH="$conda_prefix/lib:${LD_LIBRARY_PATH:-}"
         ( source "$conda_prefix/bin/activate" ) || die "could not activate conda"
-        warn "Requiring the LD_LIBRARY_PATH fix"
+        warn "Fixing this requires an LD_LIBRARY_PATH addition before conda activation"
         require_ldd_weakref_fix=true
     }
     source "$conda_prefix/bin/activate"
@@ -241,7 +244,7 @@ cd_conda () {
 
 create_dvcs_repo () {
 
-    test "${create_new_repo:-}x" == "xtrue"  || {
+    $create_new_repo || {
         nfo "-G not set -> no action"
         return 0
     }
@@ -271,6 +274,19 @@ do_push_up_to_master () {
     $dvcs push
 }
 
+create_act_func_name () {
+    # getting a function name which bash accepts:
+    act_func_name="`python -sSc "if 1:
+    import string
+    c = string.digits + string.ascii_letters + '_'
+    p, f = '$conda_prefix'.rsplit('/', 1)
+    clean = lambda s: filter(lambda x: x in c, s)
+    f, p = (clean(f), clean(p.replace('/', '_')))
+    print('be_%s%s' % (f, p))
+    " ` "
+}
+
+
 test_success () {
     which python | grep "$conda_prefix" | grep -v grep >/dev/null
     have_be_config_file || return 0
@@ -289,18 +305,6 @@ test_success () {
         eval "python -c \"$line\"" || die "Failed:\n$line\n"
     done <<< "${tests_python:-}"
 
-}
-
-show_info () {
-    echo "Init conda installed."
-    echo "prefix: "$conda_prefix""
-    echo "base_packages: "$base_packages""
-    echo
-    echo ".$dvcs is updated"
-    $push_back && echo "The repo was pushed" || echo "The repo can be pushed"
-    echo ""
-    echo "Activate with:"
-    echo "source "$conda_prefix"/bin/activate"
 }
 
 do_check_if_located_within_existing_install () {
@@ -375,38 +379,39 @@ copy_base_env_over () {
     ( cd "$dest" && find . | grep '.'$dvcs'$' | xargs rm -rf )
 }
 
-add_activate_script () {
-    local d="$conda_prefix/etc/conda/activate.d"
-    mkdir -p "$d"
-    echo -e "#!/usr/bin/env bash
-source "\$CONDA_PREFIX$_bin_app_env_bash/be_active"
-    " > "$d/bashenv.sh"
-}
 
 do_add_activate_to_bashrc () {
+    $do_touch_bashrc || {
+        nfo "-N set -> no change of $HOME/.bashrc"
+        return 0
+    }
     #$add_activate_to_bashrc || { echo "Not adding to bashrc"; return 0; }
     local fn="${HOME:-/root}/.bashrc"
     local cmt="# Added by bashenv installer [`date`] $conda_prefix"
-    local marker='"'$conda_prefix'/bin/app/environ/bash/bashenv"'
-    marker="$marker $add_activate_to_bashrc $require_ldd_weakref_fix"
-    local msg='source '$marker''
-    nfo "Adding to $fn: $msg"
+    # positional args evaluated there:
+    local marker='"'$conda_prefix'/bin/app/environ/bash/be_active"'
+    marker="$marker $auto_activate_via_bashrc"
+    marker="$marker $act_func_name"
+    marker="$marker $require_ldd_weakref_fix"
+
+    activation_cmd='source '$marker''
+    nfo "Adding to $fn: $activation_cmd"
     # we filter the old one for any existing conda prefix and add the new one:
     local tmp="`mktemp`" # sed !
     cat "$fn" | grep -v "$conda_prefix" > "$tmp"
     cat "$tmp" > "$fn"
     echo "$cmt" >> "$fn"
-    echo -e "$msg" >> "$fn"
+    echo "$activation_cmd" >> "$fn"
     /bin/rm -f "$tmp"
 }
 
+
 have_be_config_file () {
-    test "${be_config_file:-}x" == "x" && return 1
-    return 0
+    test "${be_config_file:-}x" != "x"
 }
 
 source_configfile () {
-    #while getopts "c:" opt 2>/dev/null; do
+    # scan all opts first for a -c <config file>
     while getopts "$_opts" opt; do
         case "$opt" in
             c) be_config_file="`readlink -f "$OPTARG"`";; # abspath, we will cd
@@ -482,6 +487,9 @@ force_utf8 () {
     # on py2 there were problems sourcing activtion shell scripts with unicode.
     # they went away after setting FILESSYSTEMENCODING away from
     # ANSI_X3.4-1968o to utf-8
+    # Reason: In conda/activate.py they try decode all env vars via the
+    # FSEncoding - crashing, when utf-8 stuff is in the environ, since default
+    # sys.getfilesystemencoding() is some strange 1970's one.
     # lets force all utf-8 and get fine python2:
     test -e "$conda_prefix/lib/python2.7/" || return 0
     local lc="$conda_prefix/lib/python2.7/sitecustomize.py"
@@ -503,6 +511,18 @@ write_be_config () {
 }
 
 
+show_info () {
+    echo "Init conda installed."
+    echo "prefix: "$conda_prefix""
+    echo "base_packages: "$base_packages""
+    echo
+    $create_new_repo && echo ".$dvcs is updated"
+    $push_back && echo "The repo was pushed" || {
+        $create_new_repo && echo "The repo can be pushed" || echo "no repo created"
+    }
+    echo ""
+}
+
 
 main () {
     source_functions
@@ -523,13 +543,13 @@ main () {
         sh get_miniconda
         sh chmod_conda
         sh install_conda
+        sh force_utf8
         sh activate_conda
         sh add_base_packages
     }
     sh mkdir_etc_conda_activate
     sh do_fail_on_no_git_hg
     sh copy_base_env_over
-    sh add_activate_script
     sh add_channels
     sh add_packages
     sh add_pips
@@ -540,6 +560,7 @@ main () {
     sh cd_conda
     sh test_success
     sh create_dvcs_repo
+    sh create_act_func_name
     sh do_add_activate_to_bashrc
     sh do_push_up_to_master
     show_info

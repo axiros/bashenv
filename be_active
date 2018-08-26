@@ -1,14 +1,29 @@
 #!/usr/bin/env bash
 
-#!/usr/bin/env bash
+_="
+Sourced at every bash entry, by a source <me> statement added by create to bashrc.
+Our Tasks:
+- export an activation function (name of it given in args)
+- add us to known_bashenvs
+- activate our conda if wanted, sourcing bashenv functions and env then
+
+
+We could be already activated -> then just source be_active via activate.d script
+Else activate us if required or just export our activation function
+"
+
+
 
 usage="Bashenv Activator
 
-Usage [sourced ]: source be_active
+Usage [sourced ]: source be_active [OPTIONS] <ARGS>
 
 
 Options:
--c: Alternate config file. Default: '../config'
+None currently
+
+Args:
+Positional: <activate us> <act_func_name> <req_ldd_fix>
 
 Actions:
 
@@ -18,27 +33,44 @@ Example:
 set -a
 be_dir="$(unset CDPATH && cd "$(dirname "${BASH_SOURCE[0]}")" && echo $PWD)"
 be_config_file="$be_dir/config"
-run_cmd=
-run_args=
 be_dvcs="${dvcs:-git}"
 set +a
 
 exit_sh_help () { echo -e "$usage"; exit ${1:-0}; }
 
 parse_cli () {
-    while getopts "hc:" opt; do
+    while getopts "h" opt; do
         case "$opt" in
             c) be_config_file="$OPTARG";;
-            h) exit_sh_help;;
             *) exit_sh_help 1;;
         esac
     done
     shift $((OPTIND-1))
-    run_cmd="${1:-}"
-    test "${run_cmd:-}x" == "x" || shift
-    run_args=$*
+    # those are set from the .bashrc statement from the installer:
+    add_activate_to_bashrc=$1 ; shift
+    act_func_name="$1"        ; shift
+    require_ldd_weakref_fix=$1
 }
 
+derive_conda_prefix_from_here() {
+    conda_prefix="$(unset CDPATH && cd "$be_dir/../../../../" && echo $PWD)"
+}
+
+if_active_then_do_base_activations_and_return() {
+    test "${CONDA_PREFIX:-}x" == "${conda_prefix}x" && {
+        base_activations
+        return 0
+    }
+    return 1
+}
+
+make_us_known () {
+    we_where_known=true # won't create activation function then
+    known_bashenvs="${known_bashenvs:-}"
+    [[ "$known_bashenvs" == *$conda_prefix* ]] && return 0
+    export known_bashenvs="$known_bashenvs:$conda_prefix"
+    we_where_known=false
+}
 export_activation_command_for_subprocesses () {
     activate_bash_env () {
         source "$be_dir" $be_features
@@ -58,18 +90,46 @@ base_activations () {
     source "$be_dir/functions"
     source "$be_dir/aliases"
     local p="`( cd "$be_dir"; cd ..; cd ..; cd ..; pwd; )`"
-    add_path "$p"
+    add_path "$p" # noop if there
     set +a
+}
+
+get_ldd () {
+    $require_ldd_weakref_fix || return 0
+    echo "export LD_LIBRARY_PATH=\"$conda_prefix/lib:${LD_LIBRARY_PATH:-}\"; "
+}
+
+export_activation_function_if_not_known () {
+    $we_where_known && return 0
+    # getting a function name which bash accepts:
+    local ldd="`get_ldd`"
+    eval "$act_func_name () {
+            $ldd
+            source \"$conda_prefix\"/bin/activate
+            source $be_dir/be_active do_base_activations
+          }
+          export -f $act_func_name
+          "
+}
+
+
+activate_us_if_wanted () {
+    $add_activate_to_bashrc || return 0
+    eval "`get_ldd`"
+    source "$conda_prefix/bin/activate"
+    if_active_then_do_base_activations_and_return
 }
 
 main () {
     set -u
-
+    test "${1:-}x" == "do_base_activationsx" && { base_activations; return 0; }
     parse_cli $*
+    derive_conda_prefix_from_here
     source_config
-    base_activations
-
+    if_active_then_do_base_activations_and_return && return 0 || true
+    make_us_known
+    export_activation_function_if_not_known
+    activate_us_if_wanted
 }
 
 main $*
-

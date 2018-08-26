@@ -9,12 +9,27 @@ funcs_dir="$(unset CDPATH && cd "$(dirname "$BASH_SOURCE")" && echo $PWD)"
 set_theme () {
     export be_theme="${1:-${be_theme:-default}}"
     source "$funcs_dir/themes/outfuncs"
-    source "$funcs_dir/themes/$be_theme"
+    source "$funcs_dir/themes/default"
+    test "x${be_theme:-}" == "x" || {
+        source "$funcs_dir/themes/$be_theme"
+    }
+}
+
+set_prompt () {
+    local p="`basename "$CONDA_PREFIX"`"
+    local w="#"
+    test "`whoami`" != "root" && w="$"
+    #PS1="\[\e[0;33m\]$p\[\e[m\] \u@\h:\w$w "
+    PS1="\[$L\]$p\[\e[m\] \u@\h:\w$w "
+    # no export, PS1 might be set by .bashrc as well, i.e. must do again
 }
 
 test "${be_interactive:-}x" == "x" && source "$funcs_dir/environ"
-test "${be_theme:-}x"       == "x" && set_theme default
-
+test "${AXC_THEME_CODE:-}x" == "x" && set_theme
+# allow us to get sourced w/o activation
+test "${CONDA_PREFIX:-}x" == "x" || {
+    $be_interactive && set_prompt
+}
 
 # Check for a required tool
 #-1: tool
