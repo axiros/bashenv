@@ -104,11 +104,12 @@ test_create_scratch () {
     # we did change .bashrc (no -N):
     local fn_bashrc="${HOME:-/root}/.bashrc"
     (
-       set +eux
+       set +eu
+       set -x
        origflags="$-"
        source "$fn_bashrc"
        # flags should be in orig state after sourcing the be_active:
-       set -x; test "$-" == "$origflags" || exit 1; set +x
+       test "$-" == "$origflags" || exit 1; set +x
        be_xc_tmp
        verify "$P1"
     ) || exit 1
