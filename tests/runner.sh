@@ -100,16 +100,16 @@ test_create_scratch () {
     echo "Creating a bashenv from scratch, with only wget available."
     echo "(that requires internet to pull conda stuff)"
     del "$P1"
-    $fn_create -p "$P1" -G go
+    local fn_register_file="/tmp/be_test_bashrc"
+    $fn_create -p "$P1" -G -N "$fn_register_file" go
     # we did change .bashrc (no -N):
-    local fn_bashrc="${HOME:-/root}/.bashrc"
     (
        set +eu
        set -x
        origflags="$-"
-       cat "$fn_bashrc" # info
-       cat "$fn_bashrc" | grep "$P1" || exit 1
-       source "$fn_bashrc"
+       cat "$fn_register_file" # info
+       cat "$fn_register_file" | grep "$P1" || exit 1
+       source "$fn_register_file"
        # flags should be in orig state after sourcing the be_active:
        test "$-" == "$origflags" || exit 1
        be_xc_tmp
@@ -120,8 +120,8 @@ test_create_scratch () {
 
     # remove this from .bashrc:
     local tmp="`mktemp`"
-    cat "$fn_bashrc" | grep -v "$P1" > "$tmp"
-    cat "$tmp" > "$fn_bashrc"
+    cat "$fn_register_file" | grep -v "$P1" > "$tmp"
+    cat "$tmp" > "$fn_register_file"
     /bin/rm -f "$tmp"
 }
 

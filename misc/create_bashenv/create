@@ -26,6 +26,8 @@ local_pypath_from_sys_path_in=
 # TODO: diff between 3s and 2:
 cached_installer="/tmp/miniconda2.sh"
 
+HOME="${HOME:-/root}"
+
 usage="Creates Bashenv Repos From Scratch
 
 By default it commits all files into a DVCS so that you can push the complete
@@ -48,6 +50,8 @@ Options:
     If we are within another prefix this sets -b (bootstrap mode).
 -A: Auto activate, via $HOME/.bashrc.
 -N: Do NOT touch bashrc (not even to register the activation function)
+-F: Write register function into different file than $HOME/.bashrc
+
 
 Notes:
 
@@ -59,6 +63,7 @@ to your .bashrc.
     - Activation then only via sourcing
       <prefix>/bin/app/environ/bash/be_active true
     - No entry into \$be_bashenvs_known
+    If you supply a different file via -F then -N has no effect.
 
 -g: If you point to a remote repo, you need git/hg already when running this -
 we do not download this as zip, just in order to create this ;-)
@@ -83,7 +88,7 @@ bootstrap_mode=false
 remove_existing_repo=false
 create_new_repo=false
 
-
+fn_register_file="$HOME/.bashrc"
 # remove all $conda_prefix/pkgs after install:
 remove_packages=true
 push_back=false
@@ -93,7 +98,7 @@ do_touch_bashrc=true
 
 
 # -------------------------------------------------------------------- internal
-_opts="PDc:C:NAGd:bp:g:xh"
+_opts="PDc:C:NF:AGd:bp:g:xh"
 _take_bashenv_from_conda_prefix=
 # fix. always:
 _bin_app_env_bash="/bin/app/environ/bash"
@@ -122,6 +127,7 @@ parse_cli () {
             p) conda_prefix="$OPTARG";;
             C) cached_installer="$OPTARG";;
             P) push_back=true;;
+            F) fn_register_file="$OPTARG";;
             g) repo_to_update_dir_or_url="$OPTARG";;
             x) set -x;;
             *) exit_sh_help 1
@@ -393,11 +399,14 @@ copy_base_env_over () {
 
 do_add_activate_to_bashrc () {
     $do_touch_bashrc || {
-        nfo "-N set -> no change of $HOME/.bashrc"
-        return 0
+        test "${fn_register_file}" == "$HOME/.bashrc" && {
+            nfo "-N set -> no change of $HOME/.bashrc"
+            return 0
+        }
     }
     #$add_activate_to_bashrc || { echo "Not adding to bashrc"; return 0; }
-    local fn="${HOME:-/root}/.bashrc"
+    local fn="$fn_register_file"
+    touch "$fn"
     local cmt="# Added by bashenv installer [`date`] $conda_prefix"
     # positional args evaluated there:
     local marker='"'$conda_prefix'/bin/app/environ/bash/be_active"'
