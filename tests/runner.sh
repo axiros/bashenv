@@ -52,6 +52,7 @@ act_verify () {
     which constructor | grep "$prefix" || exit 1
     echo "Testing .git presence"
     test -e "$prefix/.git" || exit 1
+    return 0
     # only this allows to remove directly after git -A:
     # otherwise the gc process conflicts with rm:
     # can't do, tests are also on non travis:
@@ -120,6 +121,7 @@ test_create_from_existing_with_packages () {
     del "$P3"
     act_verify "$P1"
     "$P1/bin/app/environ/bash/$fn_create_rel" -G -b -p "$P3" -c "$test_config1" go
+    set -x
     act_verify "$P3"
 }
 
@@ -131,6 +133,7 @@ main () {
      ( run test_construct_relocatable_conda_installer_with_packages )
      ( run test_bootstrap_from_constructed                          )
      ( run test_create_from_existing_with_packages                  )
+     exit 0
 }
 
 main $*

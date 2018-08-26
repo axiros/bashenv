@@ -5,20 +5,22 @@
 This sets up enviroments with some bash helper features plus [conda](https://anaconda.org/) package management.
 
 From any Unix environment with only wget or curl you can define the tools you
-need in a config file, then start an installer producing the intended environment...
+need in a simple config file, then start an installer producing the intended environment...
 
 - in a shell sourceable way, w/o even leaving your current process.
 
 - contained within one (arbitrary) directory (binaries are patched accordingly)
 
 - with a [command][constructor] at hand to create one installer file,
-  for (again relocatable) installs in airtight production environments.
+  for (again relocatable) installs in airtight production environments...
+
+- ...which you can also use as a basis for configurations with additional features
 
 
 The tool is designed to work well with static package download facilities, like pip servers and conda channels but also with DVCS servers.
 
-Note: When you do not have a DVCS tool like git or hg on your target (but Internet or a static server with a base environment), then just download a snapshot of this repo to anywhere in your filesystem and run the [installer](misc/create_bashenv/create).
-
+Note: When you do not have a DVCS tool like git or hg on your target (but Internet or a static server with a base environment),
+ then just download a snapshot of this repo to anywhere in your filesystem and run the [installer](misc/create_bashenv/create).
 
 
 
@@ -31,7 +33,8 @@ In the base package the minimum conda tools are
 - [constructor][constructor]
 - pip
 
-but that list can be extended via the config.
+but that list can be extended via the config. As mentioned, the installs can be
+based on previously constructed, more feature rich base installers as well.
 
 ## Example Config
 
