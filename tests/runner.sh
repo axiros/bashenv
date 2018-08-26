@@ -107,14 +107,17 @@ test_create_scratch () {
        set +eu
        set -x
        origflags="$-"
+       cat "$fn_bashrc" # info
+       cat "$fn_bashrc" | grep "$P1" || exit 1
        source "$fn_bashrc"
        # flags should be in orig state after sourcing the be_active:
-       test "$-" == "$origflags" || exit 1; set +x
+       test "$-" == "$origflags" || exit 1
        be_xc_tmp
        verify "$P1"
     ) || exit 1
     # now we have git and hg and pip:
     act_verify "$P1"
+
     # remove this from .bashrc:
     local tmp="`mktemp`"
     cat "$fn_bashrc" | grep -v "$P1" > "$tmp"
