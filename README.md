@@ -42,7 +42,8 @@ based on previously constructed, more feature rich base installers as well.
 development_chroot root@ip-10-34-2-19:/# cat /root/bashenv/misc/be_configs/reactive_python2.7
 #!/usr/bin/env bash
 
-conda_prefix="/xc.$(basename $be_config_file)"
+# The one the autor suggests - can be changed via -p <prefix dir>
+default_prefix="/xc.reactive_python_2.7"
 
 # one line per conda install statement.
 # These are binary packages for your architecture already, installed within the prefix:

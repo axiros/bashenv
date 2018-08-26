@@ -2,7 +2,6 @@
 
 # File is sourced by /root/.bashrc after activation
 
-set -u
 
 #[[ $- == *i* ]] && be_interactive=true || be_interactive=false
 [[ -t 1 ]] && be_interactive=true || be_interactive=false

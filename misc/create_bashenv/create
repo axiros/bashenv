@@ -8,9 +8,7 @@ here="$(unset CDPATH && cd "$(dirname "$BASH_SOURCE")" && echo $PWD)"
 # not working (e.g. after config changes)
 
 # CONFIG FILE DEFAULTS:
-# we don't do tmp, thats to risky in container age's private tmps:
-# otherwise you can change to your liking:
-conda_prefix="/xc"
+conda_prefix=
 # channels added
 channels=
 packages=
@@ -45,8 +43,9 @@ Options:
 -D: Remove any existing repo before creation of new one
 -d: DVCS to use (git or hg) [default: $dvcs]
 -P: Push updates back to master
--p: Set conda prefix [default: $conda_prefix].
-    If we are within another prefix this sets -b (bootstrap mode)
+-p: Set bashenv(conda) prefix [default: $conda_prefix].
+    This is the directory we will install everything into.
+    If we are within another prefix this sets -b (bootstrap mode).
 -A: Auto activate, via $HOME/.bashrc.
 -N: Do NOT touch bashrc (not even to register the activation function)
 
@@ -77,8 +76,6 @@ conda_url="https://repo.continuum.io/miniconda/Miniconda2-latest-Linux-x86_64.sh
 bootstrap_mode=false
 remove_existing_repo=false
 create_new_repo=false
-# https://github.com/MDAnalysis/mdanalysis/issues/1739#issuecomment-407390598
-require_ldd_weakref_fix=false
 
 
 # remove all $conda_prefix/pkgs after install:
@@ -127,6 +124,15 @@ parse_cli () {
     shift $((OPTIND-1))
     run_cmd="${1:-}"
     test "${run_cmd:-}x" != "gox" && exit_sh_help 1 || return 0
+}
+
+derive_target_conda_prefix () {
+    test "${conda_prefix:-}x" != "x" || {
+        test "${default_prefix:-}x" != "x" && {
+          conda_prefix="$default_prefix"
+        } || die "Please provide a prefix with -p or \$default_prefix in config"
+    }
+    ok "We will install into $I$conda_prefix"
 }
 
 check_local_paths_present () {
@@ -207,7 +213,6 @@ activate_conda () {
         export LD_LIBRARY_PATH="$conda_prefix/lib:${LD_LIBRARY_PATH:-}"
         ( source "$conda_prefix/bin/activate" ) || die "could not activate conda"
         warn "Fixing this requires an LD_LIBRARY_PATH addition before conda activation"
-        require_ldd_weakref_fix=true
     }
     source "$conda_prefix/bin/activate"
     test "`python -c 'import sys; print(sys.executable)'`" == \
@@ -392,13 +397,14 @@ do_add_activate_to_bashrc () {
     local marker='"'$conda_prefix'/bin/app/environ/bash/be_active"'
     marker="$marker $auto_activate_via_bashrc"
     marker="$marker $act_func_name"
-    marker="$marker $require_ldd_weakref_fix"
 
     activation_cmd='source '$marker''
     nfo "Adding to $fn: $activation_cmd"
     # we filter the old one for any existing conda prefix and add the new one:
     local tmp="`mktemp`" # sed !
     cat "$fn" | grep -v "$conda_prefix" > "$tmp"
+    # this is working even if .bashrc is a symlink, we do not create a new
+    # file with this but change the old one:
     cat "$tmp" > "$fn"
     echo "$cmt" >> "$fn"
     echo "$activation_cmd" >> "$fn"
@@ -493,7 +499,7 @@ force_utf8 () {
     # lets force all utf-8 and get fine python2:
     test -e "$conda_prefix/lib/python2.7/" || return 0
     local lc="$conda_prefix/lib/python2.7/sitecustomize.py"
-    nfo "This is a python2 install, so we do set defaultencoding"
+    nfo "This is a python2 install, so we do set default[FS]encoding"
     sh cp "$here/utf8_2.7_sitecustomize.py" "$lc"
     sh cat "$lc"
 }
@@ -531,6 +537,7 @@ main () {
     sh do_check_if_located_within_existing_install || true
     sh source_configfile $*
     parse_cli $* || exit_sh_help
+    sh derive_target_conda_prefix
     sh check_local_paths_present
     sh check_enforce_repo_switches
     sh do_activate_existing_for_git_hg || true
