@@ -101,7 +101,7 @@ test_create_scratch () {
     echo "(that requires internet to pull conda stuff)"
     del "$P1"
     local fn_register_file="/tmp/be_test_bashrc"
-    $fn_create -p "$P1" -G -N "$fn_register_file" go
+    $fn_create -p "$P1" -G -F "$fn_register_file" go
     # we did change .bashrc (no -N):
     (
        set +eu
