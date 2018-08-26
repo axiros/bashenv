@@ -87,7 +87,6 @@ test_construct_relocatable_conda_installer_with_packages () {
     # still there from first test:
     # we need that for the constructor command:
     act_verify "$P1"
-    /bin/sh
     mkdir -p "$d_inst"
     constructor --output-dir="$d_inst" "$here/misc/constructions/base"
     echo "constructed: `ls -lta $d_inst`"
@@ -121,8 +120,8 @@ test_create_from_existing_with_packages () {
     del "$P3"
     act_verify "$P1"
     "$P1/bin/app/environ/bash/$fn_create_rel" -G -b -p "$P3" -c "$test_config1" go
-    set -x
     act_verify "$P3"
+    return 0
 }
 
 
