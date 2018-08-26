@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+# vim: filetype=sh
 
 _="
 Sourced at every bash entry, by a source <me> statement added by create to bashrc.

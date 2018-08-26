@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+# vim: filetype=sh
 
 # We have environ and functions sourced
 

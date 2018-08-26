@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+# vim: filetype=sh
 
 # File is sourced at conda activation after environ is sourced.
 
