@@ -227,8 +227,9 @@ activate_conda () {
         warn "Fixing this requires an LD_LIBRARY_PATH addition before conda activation"
     }
     source "$conda_prefix/bin/activate"
-    test "`python -c 'import sys; print(sys.executable)'`" == \
-          "$conda_prefix/bin/python" || die "activation error"
+    local exe="`python -c 'import sys; print(sys.executable)'`"
+    test "$exe" == "$conda_prefix/bin/python" || \
+        die "activation error - expected $conda_prefix/bin/python - got $exe"
 }
 add_base_packages () {
     nfo "Adding base packages $I$base_packages"
