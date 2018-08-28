@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 
 me="$0"
-here="$(unset CDPATH && cd "$(dirname "$BASH_SOURCE")" && echo $PWD)"
+unset CDPATH
+here="$(cd "$(dirname "$BASH_SOURCE")" && echo $PWD)"
 
 # TODO: understand envs and $pyver (hg then in env)
 # TODO: the update process of an existing one, for push back into same repo is
@@ -137,13 +138,19 @@ parse_cli () {
     run_cmd="${1:-}"
     test "${run_cmd:-}x" != "gox" && exit_sh_help 1 || return 0
 }
-
+abspath () {
+    local dn="$(dirname "$1")"
+    test -e "$dn" || mkdir -p "$dn"
+    dn="$(cd "$(dirname "$1")" && pwd)"
+    echo "$dn/$(basename "$1")"
+}
 derive_target_conda_prefix () {
     test "${conda_prefix:-}x" != "x" || {
         test "${default_prefix:-}x" != "x" && {
           conda_prefix="$default_prefix"
         } || die "Please provide a prefix with -p or \$default_prefix in config"
     }
+    conda_prefix="`abspath "$conda_prefix"`"
     ok "We will install into $I$conda_prefix"
 }
 
