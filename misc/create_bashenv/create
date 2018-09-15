@@ -4,7 +4,7 @@ me="$0"
 unset CDPATH
 here="$(cd "$(dirname "$BASH_SOURCE")" && echo $PWD)"
 
-# TODO: understand envs and $pyver (hg then in env)
+# TODO: understand envs and $conda_ver (hg then in env)
 # TODO: the update process of an existing one, for push back into same repo is
 # not working (e.g. after config changes)
 
@@ -14,7 +14,7 @@ conda_prefix=
 channels=
 packages=
 pips=
-base_packages="git mercurial constructor"
+base_packages="git constructor"
 dvcs=git
 HOME="${HOME:-/root}"
 be_config_file=
@@ -25,10 +25,12 @@ local_pypath_from_sys_path_in=
 
 # just to avoid downloads of conda all the time when creating many envs:
 # TODO: diff between 3s and 2:
-cached_installer="/tmp/miniconda2.sh"
+cached_installer="/tmp/miniconda<conda_ver>-<arch>.sh"
 
 HOME="${HOME:-/root}"
-
+conda_ver="3-latest"
+arch="Linux-x86_64"
+root_python=
 usage="Creates Bashenv Repos From Scratch
 
 By default it commits all files into a DVCS so that you can push the complete
@@ -41,6 +43,8 @@ Options:
     an existing install with same prefix.
 -c: Read config file [default from any activated bashenv's prefix/be_config file
     Samples in misc/be_configs
+-V: Version of conda to use [default: $conda_ver]
+-a: Arch of conda to use, e.g. 'Linux-x86_64' [default: $arch]
 -C: Use this conda installer file [default: $cached_installer]
 -G: Create new .$dvcs repo (requires -D if one exists)
 -D: Remove any existing repo before creation of new one
@@ -52,10 +56,12 @@ Options:
 -A: Auto activate, via $HOME/.bashrc.
 -N: Do NOT touch bashrc (not even to register the activation function)
 -F: Write register function into different file than $HOME/.bashrc
-
+-i: Should we install another python into the root env e.g. via conda install python=3.6
 
 Notes:
-
+-i: Leave empty to use the python in the installer (-V) else say e.g. -i 3.6
+-a: See https://repo.continuum.io/miniconda/ regarding what is available for
+    Linux-x86_64
 -A: By default we just add a function ('be_<your prefix>') to activate on demand
 to your .bashrc.
 
@@ -81,10 +87,6 @@ $me -rpg https://github.com/axiros/bashenv_kickstart go
 set -eu
 
 
-# you could point this to a conda built by constructor, already containing
-# more stuff:
-conda_url="https://repo.continuum.io/miniconda/Miniconda2-latest-Linux-x86_64.sh"
-
 bootstrap_mode=false
 remove_existing_repo=false
 create_new_repo=false
@@ -99,7 +101,7 @@ do_touch_bashrc=true
 
 
 # -------------------------------------------------------------------- internal
-_opts="PDc:C:NF:AGd:bp:g:xh"
+_opts="PDc:C:NF:AGd:bp:g:xhV:a:i:"
 _take_bashenv_from_conda_prefix=
 # fix. always:
 _bin_app_env_bash="/bin/app/environ/bash"
@@ -117,6 +119,7 @@ parse_cli () {
     OPTIND=
     while getopts "$_opts" opt; do
         case "$opt" in
+            i) root_python="$OPTARG";;
             d) dvcs="$OPTARG";;
             c) be_config_file_orig="$OPTARG";; # read already for config defaults
             h) exit_sh_help;;
@@ -129,6 +132,8 @@ parse_cli () {
             C) cached_installer="$OPTARG";;
             P) push_back=true;;
             F) fn_register_file="$OPTARG";;
+            V) conda_ver="$OPTARG";;
+            a) arch="$OPTARG";;
             g) repo_to_update_dir_or_url="$OPTARG";;
             x) set -x;;
             *) exit_sh_help 1
@@ -138,12 +143,27 @@ parse_cli () {
     run_cmd="${1:-}"
     test "${run_cmd:-}x" != "gox" && exit_sh_help 1 || return 0
 }
+
+conda_download_url () {
+    # you could point this to a conda built by constructor, already containing
+    # more stuff:
+    echo "https://repo.continuum.io/miniconda/Miniconda$conda_ver-$arch.sh"
+}
+
+
 abspath () {
     local dn="$(dirname "$1")"
     test -e "$dn" || mkdir -p "$dn"
     dn="$(cd "$(dirname "$1")" && pwd)"
+    test "x$dn" == "x/" && dn=
     echo "$dn/$(basename "$1")"
 }
+
+derive_cached_installer_name_by_conda_ver () {
+    cached_installer="${cached_installer/<conda_ver>/$conda_ver}"
+    cached_installer="${cached_installer/<arch>/$arch}"
+}
+
 derive_target_conda_prefix () {
     test "${conda_prefix:-}x" != "x" || {
         test "${default_prefix:-}x" != "x" && {
@@ -216,7 +236,7 @@ get_miniconda () {
         nfo "already present: $cached_installer"
         return 0
     }
-    web_get "$conda_url" "$cached_installer"
+    web_get "`conda_download_url`" "$cached_installer" || die "could not download conda"
 }
 
 chmod_conda () {
@@ -238,6 +258,12 @@ activate_conda () {
     test "$exe" == "$conda_prefix/bin/python" || \
         die "activation error - expected $conda_prefix/bin/python - got $exe"
 }
+install_other_root_python (){
+    test "${root_python:-}x" == "x" && { nfo "no other root python"; return 0; }
+    nfo "conda install python=="$root_python""
+    conda install -y python=="$root_python" || die "failed"
+}
+
 add_base_packages () {
     nfo "Adding base packages $I$base_packages"
     conda install -y $base_packages || die "conda install of $base_packages failed"
@@ -303,9 +329,9 @@ create_act_func_name () {
     # getting a function name which bash accepts:
     act_func_name="`python -sSc "if 1:
     import string
-    c = string.digits + string.ascii_letters + '_'
+    C = string.digits + string.ascii_letters + '_'
     p, f = '$conda_prefix'.rsplit('/', 1)
-    clean = lambda s: filter(lambda x: x in c, s)
+    clean = lambda s: ''.join([c for c in s if c in C])
     f, p = (clean(f), clean(p.replace('/', '_')))
     print('be_%s%s' % (f, p))
     " ` "
@@ -560,6 +586,7 @@ main () {
     sh do_check_if_located_within_existing_install || true
     sh source_configfile $*
     parse_cli $* || exit_sh_help
+    sh derive_cached_installer_name_by_conda_ver
     sh derive_target_conda_prefix
     sh check_local_paths_present
     sh check_enforce_repo_switches
@@ -575,10 +602,11 @@ main () {
         sh install_conda
         sh force_utf8
         sh activate_conda
+        sh install_other_root_python
         sh add_base_packages
     }
     sh mkdir_etc_conda_activate
-    sh do_fail_on_no_git_hg
+    #sh do_fail_on_no_git_hg # hg no more currently
     sh copy_base_env_over
     sh add_channels
     sh add_packages
