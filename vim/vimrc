@@ -26,8 +26,8 @@ call vundle#end()            " required
 filetype plugin indent on    " required
 
 " Sample .vimrc file by Martin Brochhaus
-" 
-iab Pdb import pdb; pdb.set_trace()
+"
+iab Pdb import pdb;pdb.set_trace()
 " Automatic reloading of .vimrc
 autocmd! bufwritepost .vimrc source %
 set textwidth=80
@@ -209,11 +209,11 @@ set wildignore+=*/coverage/*
 " git clone https://github.com/klen/python-mode
 map <Leader>g :call RopeGotoDefinition()<CR>
 let g:pymode_lint_checker = 'pyflakes'
-map <Leader>b Oimport pdb; pdb.set_trace()<C-c>
+map <Leader>b Obreakpoint()<C-c>
 map <Leader>j Odebugger<C-c>
 "map <Leader>e try:<CR><TAB><C-c>except Exception as ex:<CR>import pdb;pdb.set_trace()<C-c>
 "map <Leader>e Otry:<Esc>j^i<TAB><CR>iexcept Exception as ex:<CR>import pdb;pdb.set_trace()<CR><Esc><jkllll
-map <Leader>e Otry:<Esc>j^i<TAB><Esc>oexcept Exception as ex:<CR>import pdb;pdb.set_trace()<Esc>^
+map <Leader>e Otry:<Esc>j^i<TAB><Esc>oexcept Exception as ex:<CR>breakpoint()<Esc>^
 
 " Python folding
 " mkdir -p ~/.vim/ftplugin
@@ -226,20 +226,20 @@ aug QFClose
   au!
   au WinEnter * if winnr('$') == 1 && getbufvar(winbufnr(winnr()), "&buftype") == "quickfix"|q|endif
 aug END
-au BufReadPost *.md set syntax=markdown 
-   
-    
-" Quick quit command    
-noremap <Leader>q :quit!<CR>  " Quit current window    
-noremap <Leader>Q :qa!<CR>   " Quit all windows    
-" " done, save quit:    
-noremap <Leader>d :wq!<CR>   " Save quit, d=done    
-noremap <Leader>w :w!<CR>:set nofoldenable<CR>    " Save    
-noremap <Leader>f :set nofoldenable<CR>    " Unfold everything    
-"     
+au BufReadPost *.md set syntax=markdown
+
+
+" Quick quit command
+noremap <Leader>q :quit!<CR>  " Quit current window
+noremap <Leader>Q :qa!<CR>   " Quit all windows
+" " done, save quit
+noremap <Leader>d :wq!<CR>   " Save quit, d=done
+noremap <Leader>w :w!<CR>:set nofoldenable<CR>    " Save
+noremap <Leader>f :set nofoldenable<CR>    " Unfold everything
+"
 "     " hit ,h on a python definition and you are in the file. Strg-o gets u
-"     back:  
-autocmd FileType wax colorscheme badwolf 
+"     back:
+autocmd FileType wax colorscheme badwolf
 " Mouse and backspace
 set mouse=r  " on OSX press ALT and click
 
@@ -248,3 +248,7 @@ if &diff
     colorscheme industry
 endif
 
+" By vim conda installer:
+let g:black_linelength = 79
+let g:black_fast = 1
+autocmd BufWritePre *.py execute ':Black'
