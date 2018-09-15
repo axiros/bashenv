@@ -92,8 +92,9 @@ remove_existing_repo=false
 create_new_repo=false
 
 fn_register_file="$HOME/.bashrc"
+
 # remove all $conda_prefix/pkgs after install:
-remove_packages=true
+remove_packages=false
 push_back=false
 
 auto_activate_via_bashrc=false
