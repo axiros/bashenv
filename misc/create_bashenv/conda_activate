@@ -1,0 +1,43 @@
+# (_CONDA_ROOT inserted by installer)
+here="$(unset CDPATH && cd "$(dirname "${BASH_SOURCE[0]}")/../" && echo $PWD)"
+
+relocate_conda () {
+    test -e "$_CONDA_ROOT" && return 0
+    echo "Symlinking "$here" -> "$_CONDA_ROOT""
+    ln -s "$here" "$_CONDA_ROOT" || { echo "Sorry. Cannot do that"; return 1; }
+}
+
+if_relocated () { test "${here:-}x" != "${_CONDA_ROOT:-}x"; }
+
+activate_relocated_conda () {
+    source "${_CONDA_ROOT}/bin/activate"
+}
+
+activate_conda () {
+    test "${here:-}x" != "${_CONDA_ROOT:-}x" && {
+        echo "Using Conda in "$_CONDA_ROOT"" >&2
+        source "$_CONDA_ROOT/bin/activate"
+        return $?
+    }
+}
+
+activate_conda () {
+    echo "Say \`source deactivate\` to deactivate within this shell"
+
+    \. "$_CONDA_ROOT/etc/profile.d/conda.sh" || return $?
+    _conda_activate "$@"
+}
+
+
+
+main () {
+    # parse_cli $* # no flags currently
+    relocate_conda || return 1 # if failed
+    if_relocated && { activate_relocated_conda; return $?; }
+    activate_conda
+    # get all our functions the first time, next bash invokation is anyway
+    # $_CONDA_ROOT/bin/bash ;-)
+    source  "$_CONDA_ROOT/bin/app/environ/bashrc"
+}
+
+main $*

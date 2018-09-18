@@ -1,6 +1,9 @@
 .DS_Store
-pkgs/*
+pkgs/*.bz2
 man/*
+ssl/man/*
+
+conda-bld/*
 
 # Use wildcards as well
 *~
