@@ -644,11 +644,9 @@ adapt_conda_activate () {
 }
 
 write_bash () {
-    local b="$conda_prefix/bin/bash"
-    echo "#!/usr/bin/env sh" > "$b"
-    echo "# Allowing aliases, prompt etc w/o modifying user's bashrc" >> "$b"
-    echo 'source "'$conda_prefix'/bin/app/environ/bash/bashrc"' >> "$b"
-    echo '/bin/bash $*' >>"$b"
+    local b="$conda_prefix/bin"
+    echo '/bin/bash --rcfile "'$b'/app/environ/bash/bashrc" $*' >> "$b/bash"
+    chmod +x "$b/bash"
 }
 
 show_info () {
@@ -712,7 +710,7 @@ main () {
         sh clean_conda
         sh cd_conda
         sh test_success
-        sh do_add_activate_to_bashrc
+        #sh do_add_activate_to_bashrc
         sh do_create_master_repo_or_update_existing
         show_info
     fi

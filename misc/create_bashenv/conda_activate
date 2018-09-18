@@ -37,7 +37,7 @@ main () {
     activate_conda
     # get all our functions the first time, next bash invokation is anyway
     # $_CONDA_ROOT/bin/bash ;-)
-    source  "$_CONDA_ROOT/bin/app/environ/bashrc"
+    source  "$_CONDA_ROOT/bin/app/environ/bash/bashrc"
 }
 
 main $*
