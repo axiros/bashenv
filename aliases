@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+# vim: filetype=sh
 
 # We have environ and functions sourced
 
@@ -11,6 +11,7 @@ main () {
     require vim nofail && {
         alias vim="`which vim` -u "$be_dir/vim/vimrc""
         alias vi="vim"
+        alias vimdiff="`which vimdiff` -u "$be_dir/vim/vimrc""
     }
 }
 

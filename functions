@@ -1,24 +1,38 @@
-#!/usr/bin/env bash
+# vim: filetype=sh
 
-# File is sourced by activate
-# We have environ
+# File is sourced at conda activation after environ is sourced.
 
-set -u
-funcs_dir="$(unset CDPATH && cd "$(dirname "$BASH_SOURCE")" && echo $PWD)"
+d="$(unset CDPATH && builtin cd "$(dirname "${BASH_SOURCE[0]}")" && builtin pwd)"
+be_funcs_dir="$d"
 
 set_theme () {
     export be_theme="${1:-${be_theme:-default}}"
-    source "$funcs_dir/themes/outfuncs"
-    source "$funcs_dir/themes/$be_theme"
+    source "$be_funcs_dir/themes/outfuncs"
+    source "$be_funcs_dir/themes/default"
+    test "x${be_theme:-}" == "x" || {
+        source "$be_funcs_dir/themes/$be_theme"
+    }
 }
 
-test "${be_interactive:-}x" == "x" && source "$funcs_dir/environ"
-test "${be_theme:-}x"       == "x" && set_theme default
+set_prompt () {
+    local p="`basename "$CONDA_PREFIX"`"
+    local w="#"
+    test "`whoami`" != "root" && w="$"
+    #PS1="\[\e[0;33m\]$p\[\e[m\] \u@\h:\w$w "
+    PS1="\[$L\]$p\[\e[m\] \u@\h:\w$w "
+    # no export, PS1 might be set by .bashrc as well, i.e. must do again
+}
 
+test "${be_interactive:-}x" == "x" && source "$be_funcs_dir/environ"
+test "${AXC_THEME_CODE:-}x" == "x" && set_theme
+# allow us to get sourced w/o activation
+test "${CONDA_PREFIX:-}x" == "x" || {
+    $be_interactive && set_prompt
+}
 
 # Check for a required tool
-#-1: tool
-#-2: [nofail]
+#<$1>: tool
+#[$2]: [nofail]
 require () {
     local nofail=false tool="$1"
     test "${2:-}x" == "nofailx" && nofail=true
