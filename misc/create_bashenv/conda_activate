@@ -1,4 +1,6 @@
 # (_CONDA_ROOT inserted by installer)
+
+# we cold be symlink, i.e pwd would not work like required, so:
 here="`dirname "${BASH_SOURCE[0]}"`"
 [[ $here != /* ]] && here="`echo $PWD`/$here"
 
@@ -16,10 +18,13 @@ activate_relocated_conda () {
 }
 
 activate_conda () {
-    echo "Say \`source deactivate\` to deactivate within this shell"
-
+    #https://github.com/MDAnalysis/mdanalysis/issues/1739#issuecomment-407390598
+    # the error is not catchable w/o a subshell:
     \. "$_CONDA_ROOT/etc/profile.d/conda.sh" || return $?
-    _conda_activate "$@"
+    ( source _conda_activate "$@" 2>/dev/null; ) || {
+        export LD_LIBRARY_PATH="$_CONDA_ROOT/lib:${LD_LIBRARY_PATH:-}"
+    }
+    source _conda_activate "$@"
 }
 
 

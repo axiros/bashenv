@@ -8,6 +8,11 @@ here="$(cd "$(dirname "$BASH_SOURCE")" && echo $PWD)"
 # TODO: the update process of an existing one, for push back into same repo is
 # not working (e.g. after config changes)
 
+# for the readme:
+build_args="$*"
+t_start="`date +%s`"
+
+
 # CONFIG FILE DEFAULTS:
 conda_prefix=
 # channels added
@@ -36,9 +41,13 @@ usage="Creates Bashenv Repos From Scratch
 By default it commits all files into a DVCS so that you can push the complete
 environment to a server - plus see all changes after usage.
 
-Usage: $me [OPTIONS] go
+Usage: create [OPTIONS] go
+              [OPTIONS] repo_push
+              pkgs [--json|--full]
+
 
 Options:
+
 -a: Arch of conda to use, e.g. 'Linux-x86_64' [default: $arch]
 -b: Bootstrap mode. We create a bashenv from scratch, i.e. not a new one from within
     an existing install with same prefix.
@@ -118,7 +127,6 @@ _opts="a:bc:d:g:hi:p:u:xAC:DF:GNPV:"
 _take_bashenv_from_conda_prefix=
 # fix. always:
 _bin_app_env_bash="/bin/app/environ/bash"
-_fn_default_readme="$here/README_default.md"
 _fn_conda_activate="$here/conda_activate"
 # -----------------------------------------------------------------------------
 
@@ -311,6 +319,95 @@ cd_conda () {
     cd "$conda_prefix"
 }
 
+walk_packages () {
+    python -c 'if 1:
+    import sys, json, conda.install # https://github.com/rvalieris/conda-tree
+    pkgs, deps, leafs = {}, [], []
+    cache = conda.install.linked_data(prefix=sys.prefix)
+    for k in cache.keys():
+        m = cache[k]
+        n, u, s = m["name"], m["url"], m["link"]["source"]
+        d = []
+        pkgs[n] = {"src": s, "deps": d, "url": u}
+        for j in cache[k]["depends"]:
+            d.append(j)
+            jn = j.split(" ", 1)[0]
+            deps.append(jn) if not jn in deps else None
+    deps = sorted(deps)
+    leafs.extend([p for p in pkgs if p not in deps])
+    m = {"pkgs": pkgs, "deps": deps, "leafs": leafs}
+    if "'${1:-}'" == "--json":
+        print(json.dumps(m))
+    elif "'${1:-}'" == "--full":
+        print(m)
+    else:
+        print(leafs)' # leafs are normally the interesting part
+    }
+
+create_readme () {
+    # we are cd in conda
+    local r="README.md"
+    test -e "$r" && return
+    _ () { echo -e "$*\n" >> "$r"; }
+    local p="`walk_packages --full`"
+    local leafs="`python -c "print(' '.join(sorted($p['leafs'])))"`"
+    local pkgs="`python -c "print(len($p['pkgs']))"`"
+
+    _ "# ${title:-`act_func_name`}: $leafs + $pkgs packages"
+    _ "${description:-}  "
+    _ "([bashenv](https://github.com/axiros/bashenv))"
+    _ "### Conda Packages"
+
+    for p in $base_packages; do _ "- $p"; done
+    for p in $packages; do _ "- $p"; done
+    _ "### Pip Packages"
+    for p in $pips;     do _ "- $p"; done
+    _ "### Channels"
+    for p in $channels; do _ "- $p"; done
+    _; _
+
+    _ "### Installation"
+
+        _ "1. Clone or download this repo, e.g. into your home directory."
+        _ "2. Enter \`source \"./`act_func_name`.git/bin/activate\"\`"
+        _ "This will symlink the repo into "$conda_prefix" and then sources \`$conda_prefix/bin/activate\`"
+        _
+        _ "> If you do not want the symlink (which allows prefixes in \`/tmp\` for \
+        non root users) you can directly clone into \`$conda_prefix\`."
+
+    _ "#### Build Infos"
+    _ '##### Configfile:'
+        echo '```bash' >> "$r"
+        cat "$be_config_file" >> "$r"
+        echo '```' >> "$r"
+
+    _ "<details><summary>Build Summary</summary>"
+       echo -e "
+| Prefix                | $conda_prefix              |
+| ----------------      | -------------------------- |
+| User                  | ${SUDO_USER:-$USER}        |
+| Date                  | `date`                     |
+| Arguments             | \`create $build_args\`     |
+| Machine               | \``uname -a`\`             |
+| Build time (w/o push) | $((`date +%s`-$t_start))sec |
+" >> "$r"
+        _ '</details>'
+
+    _ "<details><summary>Conda Environ After Build</summary>"
+        echo '```json' >> "$r"
+        conda info --json >> "$r"
+        echo '```' >> "$r"
+        _ '</details>'
+
+    _ "<details><summary>Conda Config For Build</summary>"
+        echo '```' >> "$r"
+        conda config --show >> "$r"
+        echo '```' >> "$r"
+        _ '</details>'
+
+
+}
+
 create_or_update_dvcs_repo () {
 
     $create_new_repo || {
@@ -328,7 +425,6 @@ create_or_update_dvcs_repo () {
         cat "$here/default_ignore_file" >> "$fni"
         $dvcs add "$fni" || true
     }
-    test -e "README.md" || cat "$_fn_default_readme" > "README.md"
     nfo "Adding:"
     $dvcs status
     is_hg && hg -q addrem
@@ -663,13 +759,20 @@ show_info () {
 
 
 main () {
+
     source_functions
+
+    if [ "${1:-}x" == "pkgsx" ]; then
+        # simple reusing a cool tool within here:
+        shift
+        walk_packages $* || die "You need to have conda activated"
+        exit 0
+    fi
     # sh just prints the command before running (defined in 'functions')
     sh do_check_if_conda_is_activated || true
     sh do_check_if_located_within_existing_install || true
     sh source_configfile $*
     parse_cli $* || exit_sh_help
-
     if [ "${run_cmd:-}x" == "repo_pushx" ]; then
         create_new_repo=true
         push_back=true
@@ -709,6 +812,7 @@ main () {
         sh write_bash
         sh clean_conda
         sh cd_conda
+        sh create_readme
         sh test_success
         #sh do_add_activate_to_bashrc
         sh do_create_master_repo_or_update_existing

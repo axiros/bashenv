@@ -248,7 +248,7 @@ if &diff
     colorscheme industry
 endif
 
+" remove whitespace:
+autocmd BufWritePre *.py execute ':%s/\s\+$//e'
+
 " By vim conda installer:
-let g:black_linelength = 79
-let g:black_fast = 1
-autocmd BufWritePre *.py execute ':Black'
